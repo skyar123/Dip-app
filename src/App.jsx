@@ -74,6 +74,30 @@ const LING_MAP = {
   s:{phoneme:"/s/",color:"#FF6B6B"}, m:{phoneme:"/m/",color:"#F59E0B"},
 };
 
+const VOWEL_META = {
+  ah: { phoneme:"/ah/", label:"AH", color:"#6C63FF", gradient:"linear-gradient(135deg,#6C63FF,#B24BF3)", desc:"Jaw drops open", tip:"Like 'ahh' at the doctor — low and open", mouth:"😮" },
+  oo: { phoneme:"/oo/", label:"OO", color:"#E040A0", gradient:"linear-gradient(135deg,#E040A0,#FF6B6B)", desc:"Lips make an O", tip:"Round lips like blowing a kiss", mouth:"😯" },
+  ee: { phoneme:"/ee/", label:"EE", color:"#00D4AA", gradient:"linear-gradient(135deg,#00D4AA,#6C63FF)", desc:"Lips spread wide", tip:"Big smile — pull corners back", mouth:"😁" },
+};
+
+const DIP_TIPS = {
+  D: {
+    why:"The brain learns to track sound events over time. Long-vs-short contrast builds temporal processing — critical for word boundaries.",
+    cues:["Hold LONG sounds 2+ full seconds","Cut SHORT sounds sharp under half a second","10× difference is the goal — really exaggerate"],
+    phrase:"Loooooong one... short! Looooong... short!",
+  },
+  I: {
+    why:"Volume contrast activates different hair cells in the cochlea. The jump from soft→loud is a salient acoustic event the brain latches onto.",
+    cues:["Whisper until barely audible — make them lean in","Then hit FULL voice — no half measures","The surprise factor is the neural hook"],
+    phrase:"Quiet now... LOUD! Quiet... LOUD!",
+  },
+  P: {
+    why:"Pitch (fundamental frequency) is mapped tonotopically in the cochlea. High-vs-low teaches frequency discrimination across the whole cochlea.",
+    cues:["Go as high as you can — squeaky cartoon voice","Go as low as you can — rumbling giant","Use rising pitch as a question ↗, falling as a statement ↘"],
+    phrase:"High voice? ↗  Low voice↘.  High? ↗  Low↘.",
+  },
+};
+
 const L2L_DIP = {};
 WORDS.l2l.forEach(s => {
   L2L_DIP[s.word] = {
@@ -192,6 +216,8 @@ export default function App() {
   const [showLog, setShowLog] = useState(false);
   // Moved from renderL2lDetail to fix hooks-in-render-function violation
   const [l2lTab, setL2lTab] = useState("dip");
+  const [searchQuery, setSearchQuery] = useState("");
+  const [vowelFocus, setVowelFocus] = useState(null); // null | "ah" | "oo" | "ee"
 
   const toggleTrack = (word, stage) => setTracking(t=>({...t,[word]:{...(t[word]||{}),[stage]:!(t[word]||{})[stage]}}));
   const addLog = entry => setLogged(l=>[...l,{...entry,time:new Date().toLocaleTimeString([],{hour:"2-digit",minute:"2-digit"}),id:Date.now()}]);
@@ -202,12 +228,17 @@ export default function App() {
     if(opts.dip!==undefined)setDipDim(opts.dip);
     if(opts.game!==undefined)setGameId(opts.game);
     setShowLog(false);
+    setSearchQuery("");
   };
 
   const SL = {fontSize:10,fontWeight:700,letterSpacing:"0.18em",textTransform:"uppercase",color:"rgba(255,255,255,0.3)",marginBottom:12,paddingLeft:2};
   const backBtn = (label,target="home",opts={}) => <button onClick={()=>nav(target,opts)} style={{background:"none",border:"none",color:"rgba(255,255,255,0.45)",fontSize:12,cursor:"pointer",padding:"8px 0",fontFamily:"inherit",display:"flex",alignItems:"center",gap:4}}>← {label}</button>;
 
-  const soundPool = useMemo(() => focusL2l ? WORDS.l2l.filter(s=>s.word===focusL2l.word||s.ling===focusL2l.ling) : WORDS.l2l, [focusL2l]);
+  const soundPool = useMemo(() => {
+    if (focusL2l) return WORDS.l2l.filter(s=>s.word===focusL2l.word||s.ling===focusL2l.ling);
+    if (vowelFocus) return WORDS.l2l.filter(s=>s.ling===vowelFocus);
+    return WORDS.l2l;
+  }, [focusL2l, vowelFocus]);
   const fullPool = WORDS.l2l;
 
   const renderHome = () => (
@@ -217,6 +248,58 @@ export default function App() {
         <div style={{fontSize:9,fontWeight:700,letterSpacing:"0.25em",textTransform:"uppercase",background:"linear-gradient(90deg,#6C63FF,#E040A0,#00D4AA,#6C63FF)",backgroundSize:"200% auto",WebkitBackgroundClip:"text",WebkitTextFillColor:"transparent",animation:"shimmer 3s linear infinite",marginBottom:10}}>Remi's Listening Journey</div>
         <h1 style={{margin:"0 0 4px",fontSize:44,fontWeight:900,lineHeight:1,letterSpacing:"0.12em",background:"linear-gradient(135deg,#fff,rgba(255,255,255,0.6))",WebkitBackgroundClip:"text",WebkitTextFillColor:"transparent"}}>D · I · P</h1>
         <p style={{margin:0,fontSize:12,color:"rgba(255,255,255,0.35)"}}>Duration · Intensity · Pitch</p>
+      </div>
+
+      {/* Search bar */}
+      <div style={{position:"relative",marginBottom:14}}>
+        <input
+          value={searchQuery}
+          onChange={e=>setSearchQuery(e.target.value)}
+          placeholder="🔍  Search sounds & words…"
+          style={{width:"100%",padding:"10px 14px",borderRadius:10,background:"rgba(255,255,255,0.06)",border:"1px solid rgba(255,255,255,0.1)",color:"white",fontSize:13,outline:"none",fontFamily:"inherit"}}
+        />
+        {searchQuery&&<button onClick={()=>setSearchQuery("")} style={{position:"absolute",right:10,top:"50%",transform:"translateY(-50%)",background:"none",border:"none",color:"rgba(255,255,255,0.4)",fontSize:16,cursor:"pointer",lineHeight:1}}>×</button>}
+      </div>
+
+      {/* Inline search results */}
+      {searchQuery.trim()&&(()=>{
+        const q=searchQuery.toLowerCase();
+        const hits=WORDS.l2l.filter(s=>s.word.includes(q)||s.object.includes(q)||s.sound.toLowerCase().includes(q));
+        return hits.length>0?(
+          <div style={{marginBottom:14}}>
+            <div style={{fontSize:9,fontWeight:700,letterSpacing:"0.15em",textTransform:"uppercase",color:"rgba(255,255,255,0.3)",marginBottom:8}}>Results — tap to practice</div>
+            <div style={{display:"flex",flexDirection:"column",gap:5}}>
+              {hits.map((s,i)=>(
+                <G key={i} onClick={()=>nav("l2ldetail",{l2l:s})} style={{padding:"10px 12px",display:"flex",alignItems:"center",gap:10}}>
+                  <span style={{fontSize:24}}>{s.emoji}</span>
+                  <div style={{flex:1}}>
+                    <div style={{fontWeight:700,fontSize:13,color:"white"}}>{s.word}</div>
+                    <div style={{fontSize:9,color:"rgba(255,255,255,0.35)"}}>{s.object} · {s.sound}</div>
+                  </div>
+                  {s.ling&&<div style={{fontSize:9,padding:"2px 6px",borderRadius:4,background:`${LING_MAP[s.ling].color}22`,color:LING_MAP[s.ling].color,fontWeight:700}}>{LING_MAP[s.ling].phoneme}</div>}
+                </G>
+              ))}
+            </div>
+          </div>
+        ):(
+          <div style={{textAlign:"center",padding:"12px 0",color:"rgba(255,255,255,0.25)",fontSize:12,marginBottom:14}}>No matches for "{searchQuery}"</div>
+        );
+      })()}
+
+      {!searchQuery&&<>{/* Vowel Focus */}
+      <div style={SL}>🗣 Vowel Focus</div>
+      <div style={{display:"flex",gap:8,marginBottom:20}}>
+        {Object.entries(VOWEL_META).map(([k,v])=>{
+          const active=vowelFocus===k;
+          const count=WORDS.l2l.filter(s=>s.ling===k).length;
+          return(
+            <button key={k} onClick={()=>{const next=active?null:k;setVowelFocus(next);if(next)nav("vowelfocus");}} style={{flex:1,padding:"12px 6px",borderRadius:12,background:active?v.gradient:"rgba(255,255,255,0.05)",border:active?"none":`1px solid ${v.color}33`,cursor:"pointer",fontFamily:"inherit",textAlign:"center"}}>
+              <div style={{fontSize:22,marginBottom:2}}>{v.mouth}</div>
+              <div style={{fontSize:18,fontWeight:900,color:active?"white":v.color}}>{v.phoneme}</div>
+              <div style={{fontSize:8,color:active?"rgba(255,255,255,0.7)":"rgba(255,255,255,0.3)",marginTop:2}}>{count} sounds</div>
+            </button>
+          );
+        })}
       </div>
 
       {focusL2l && (
@@ -277,6 +360,7 @@ export default function App() {
 
       {logged.length>0&&<G onClick={()=>setShowLog(!showLog)} style={{padding:"10px 14px",marginTop:10,display:"flex",alignItems:"center",justifyContent:"space-between"}}><span style={{fontSize:11,color:"rgba(255,255,255,0.6)"}}>📋 Log ({logged.length})</span><span style={{fontSize:10,color:"rgba(255,255,255,0.25)"}}>{showLog?"▲":"▼"}</span></G>}
       {showLog&&<div style={{marginTop:8}}>{renderLog()}</div>}
+      </>}
     </div>
   );
 
@@ -313,15 +397,28 @@ export default function App() {
   const renderCategory = () => {
     const cat = VOCAB_CATEGORIES[catKey]; if(!cat) return null;
     const isL2l=catKey==="l2l", isPower=catKey==="power";
-    const words=isPower?POWER_WORDS:isL2l?WORDS.l2l:(WORDS[catKey]||[]);
+    const allWords=isPower?POWER_WORDS:isL2l?WORDS.l2l:(WORDS[catKey]||[]);
+    const q=searchQuery.toLowerCase();
+    const words=isL2l&&q?allWords.filter(s=>s.word.includes(q)||s.object.includes(q)||s.sound.toLowerCase().includes(q)):allWords;
     return(
       <div style={{padding:"0 16px 100px"}}>
         <div style={{paddingTop:14}}>{backBtn("Home")}</div>
-        <div style={{padding:"8px 0 16px"}}>
+        <div style={{padding:"8px 0 10px"}}>
           <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:4}}><span style={{fontSize:22}}>{cat.icon}</span><h2 style={{margin:0,fontSize:22,fontWeight:900,color:cat.color}}>{cat.label}</h2></div>
           <p style={{margin:0,fontSize:11,color:"rgba(255,255,255,0.35)"}}>{cat.desc} · {words.length} words</p>
         </div>
-        <div style={{display:"flex",gap:3,marginBottom:14,flexWrap:"wrap"}}>
+        {isL2l&&<div style={{position:"relative",marginBottom:10}}>
+          <input value={searchQuery} onChange={e=>setSearchQuery(e.target.value)} placeholder="🔍  Filter sounds…" style={{width:"100%",padding:"9px 14px",borderRadius:9,background:"rgba(255,255,255,0.05)",border:"1px solid rgba(255,255,255,0.08)",color:"white",fontSize:12,outline:"none",fontFamily:"inherit"}}/>
+          {searchQuery&&<button onClick={()=>setSearchQuery("")} style={{position:"absolute",right:10,top:"50%",transform:"translateY(-50%)",background:"none",border:"none",color:"rgba(255,255,255,0.4)",fontSize:16,cursor:"pointer",lineHeight:1}}>×</button>}
+        </div>}
+        {isL2l&&<div style={{display:"flex",gap:5,marginBottom:10,flexWrap:"wrap"}}>
+          {["ah","oo","ee"].map(ling=>{
+            const vm=VOWEL_META[ling];const active=searchQuery===ling;
+            return <button key={ling} onClick={()=>setSearchQuery(active?"":ling)} style={{padding:"4px 10px",borderRadius:6,background:active?vm.gradient:"rgba(255,255,255,0.05)",border:active?"none":`1px solid ${vm.color}33`,color:active?"white":vm.color,fontSize:10,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>{vm.phoneme} {vm.mouth}</button>;
+          })}
+          <button onClick={()=>setSearchQuery("")} style={{padding:"4px 8px",borderRadius:6,background:"rgba(255,255,255,0.04)",border:"1px solid rgba(255,255,255,0.06)",color:"rgba(255,255,255,0.3)",fontSize:10,cursor:"pointer",fontFamily:"inherit"}}>All</button>
+        </div>}
+        <div style={{display:"flex",gap:3,marginBottom:10,flexWrap:"wrap"}}>
           {STAGES.map(st=><div key={st.key} style={{display:"flex",alignItems:"center",gap:3,padding:"3px 6px",borderRadius:5,background:"rgba(255,255,255,0.04)"}}><div style={{width:7,height:7,borderRadius:2,background:st.color}}/><span style={{fontSize:8,color:"rgba(255,255,255,0.4)",fontWeight:600}}>{st.key}={st.label}</span></div>)}
         </div>
         <div style={{display:"flex",flexDirection:"column",gap:5}}>
@@ -392,6 +489,59 @@ export default function App() {
     );
   };
 
+  const renderVowelFocus = () => {
+    const v = VOWEL_META[vowelFocus]; if(!v) return null;
+    const sounds = WORDS.l2l.filter(s=>s.ling===vowelFocus);
+    return(
+      <div style={{padding:"0 16px 100px"}}>
+        <div style={{paddingTop:14}}>{backBtn("Home")}</div>
+        <div style={{textAlign:"center",padding:"10px 0 20px",position:"relative"}}>
+          <div style={{position:"absolute",top:"50%",left:"50%",transform:"translate(-50%,-50%)",width:160,height:160,borderRadius:"50%",background:`radial-gradient(circle,${v.color}20,transparent 70%)`,filter:"blur(30px)",pointerEvents:"none"}}/>
+          <div style={{fontSize:52,marginBottom:6}}>{v.mouth}</div>
+          <h2 style={{margin:"0 0 2px",fontSize:32,fontWeight:900,color:v.color}}>{v.phoneme}</h2>
+          <div style={{fontSize:12,color:"rgba(255,255,255,0.4)",marginBottom:4}}>{v.desc}</div>
+          <div style={{fontSize:11,color:"rgba(255,255,255,0.55)",fontStyle:"italic"}}>{v.tip}</div>
+        </div>
+
+        <G style={{padding:"12px 14px",marginBottom:16,background:`linear-gradient(135deg,${v.color}08,transparent)`}}>
+          <div style={{fontSize:9,fontWeight:700,color:v.color,letterSpacing:"0.12em",textTransform:"uppercase",marginBottom:6}}>💡 Mouth Position</div>
+          <div style={{display:"flex",gap:12,alignItems:"center"}}>
+            <div style={{width:44,height:44,borderRadius:"50%",background:v.gradient,display:"flex",alignItems:"center",justifyContent:"center",fontSize:24,flexShrink:0}}>{v.mouth}</div>
+            <div>
+              <p style={{margin:"0 0 4px",fontSize:12,color:"rgba(255,255,255,0.7)",lineHeight:1.5}}><strong style={{color:"white"}}>{v.phoneme}</strong> — {v.tip}</p>
+              <p style={{margin:0,fontSize:11,color:"rgba(255,255,255,0.4)",lineHeight:1.5}}>All {sounds.length} sounds below share this vowel. When you make these sounds, you're drilling the same mouth shape each time.</p>
+            </div>
+          </div>
+        </G>
+
+        <div style={{fontSize:9,fontWeight:700,letterSpacing:"0.15em",textTransform:"uppercase",color:"rgba(255,255,255,0.3)",marginBottom:10}}>Sounds with {v.phoneme}</div>
+        <div style={{display:"flex",flexDirection:"column",gap:6}}>
+          {sounds.map((s,i)=>(
+            <G key={i} onClick={()=>nav("l2ldetail",{l2l:s})} style={{padding:"12px 14px",display:"flex",alignItems:"center",gap:12}}>
+              <span style={{fontSize:28,flexShrink:0}}>{s.emoji}</span>
+              <div style={{flex:1}}>
+                <div style={{fontWeight:800,fontSize:14,color:"white"}}>{s.word}</div>
+                <div style={{fontSize:10,color:"rgba(255,255,255,0.4)"}}>{s.object} · <em style={{color:v.color}}>{s.sound}</em></div>
+              </div>
+              <div style={{display:"flex",flexDirection:"column",gap:4,alignItems:"flex-end"}}>
+                <div style={{fontSize:9,padding:"2px 7px",borderRadius:4,background:v.gradient,color:"white",fontWeight:700}}>{v.phoneme}</div>
+                <button onClick={e=>{e.stopPropagation();setFocusL2l(s);}} style={{fontSize:9,padding:"2px 7px",borderRadius:4,background:focusL2l?.word===s.word?"rgba(178,75,243,0.4)":"rgba(255,255,255,0.06)",border:"none",color:focusL2l?.word===s.word?"white":"rgba(255,255,255,0.3)",cursor:"pointer",fontFamily:"inherit",fontWeight:600}}>{focusL2l?.word===s.word?"✓ Focus":"Focus"}</button>
+              </div>
+            </G>
+          ))}
+        </div>
+
+        <div style={{marginTop:16}}>
+          <G style={{padding:"12px 14px",background:`linear-gradient(135deg,${v.color}06,transparent)`}}>
+            <div style={{fontSize:9,fontWeight:700,color:v.color,letterSpacing:"0.1em",textTransform:"uppercase",marginBottom:6}}>🎮 Practice with games</div>
+            <p style={{margin:"0 0 10px",fontSize:11,color:"rgba(255,255,255,0.5)",lineHeight:1.6}}>The vowel filter is active — all games will use only {v.phoneme} sounds.</p>
+            <button onClick={()=>nav("game",{game:"peekaboo"})} style={{width:"100%",padding:"10px",borderRadius:9,background:v.gradient,border:"none",color:"white",fontWeight:700,fontSize:12,cursor:"pointer",fontFamily:"inherit"}}>🙈 Play Peek-a-Boo with {v.phoneme} sounds</button>
+          </G>
+        </div>
+      </div>
+    );
+  };
+
   const renderDip = () => {
     const m=DIP_META[dipDim];if(!m)return null;
     return(
@@ -402,7 +552,20 @@ export default function App() {
           <h2 style={{margin:"0 0 2px",fontSize:24,fontWeight:900,color:m.color}}>{m.label}</h2>
           <div style={{fontSize:11,color:"rgba(255,255,255,0.4)"}}>{m.tagline}</div>
         </div>
-        <G style={{padding:"6px 10px",marginBottom:18}}><DipViz dim={dipDim}/></G>
+        <G style={{padding:"6px 10px",marginBottom:12}}><DipViz dim={dipDim}/></G>
+
+        {/* Pro Tips card */}
+        {DIP_TIPS[dipDim]&&<G style={{padding:"14px",marginBottom:18,background:`linear-gradient(135deg,${m.color}08,transparent)`}}>
+          <div style={{fontSize:9,fontWeight:700,color:m.color,letterSpacing:"0.12em",textTransform:"uppercase",marginBottom:8}}>💡 Why {m.label} matters</div>
+          <p style={{margin:"0 0 10px",fontSize:11,color:"rgba(255,255,255,0.6)",lineHeight:1.6}}>{DIP_TIPS[dipDim].why}</p>
+          <div style={{fontSize:9,fontWeight:700,color:"rgba(255,255,255,0.3)",letterSpacing:"0.1em",textTransform:"uppercase",marginBottom:6}}>Technique cues</div>
+          {DIP_TIPS[dipDim].cues.map((c,i)=><div key={i} style={{display:"flex",gap:6,marginBottom:4,alignItems:"flex-start"}}><div style={{width:4,height:4,borderRadius:"50%",background:m.color,marginTop:5,flexShrink:0}}/><span style={{fontSize:11,color:"rgba(255,255,255,0.55)",lineHeight:1.5}}>{c}</span></div>)}
+          <div style={{marginTop:10,padding:"8px 10px",borderRadius:7,background:"rgba(255,255,255,0.04)",borderLeft:`2px solid ${m.color}`}}>
+            <div style={{fontSize:9,color:"rgba(255,255,255,0.3)",marginBottom:2}}>Say it like this</div>
+            <div style={{fontSize:12,fontWeight:700,color:"white",fontStyle:"italic"}}>"{DIP_TIPS[dipDim].phrase}"</div>
+          </div>
+        </G>}
+
         <div style={SL}>{m.label} across all L2L sounds</div>
         <div style={{display:"flex",flexDirection:"column",gap:7}}>
           {WORDS.l2l.map((s,i)=>{const dp=L2L_DIP[s.word]?.[dipDim]||"";const isL=logged.some(l=>l.dim===dipDim&&l.sound===s.word);return(
@@ -432,12 +595,18 @@ export default function App() {
 
   const renderNav = () => (
     <div style={{position:"fixed",bottom:0,left:0,right:0,zIndex:100,background:"rgba(8,8,26,0.93)",backdropFilter:"blur(20px)",WebkitBackdropFilter:"blur(20px)",borderTop:"1px solid rgba(255,255,255,0.05)",padding:"5px 0 max(5px,env(safe-area-inset-bottom))",display:"flex",justifyContent:"center",gap:4}}>
-      {[{id:"home",icon:"🏠",label:"Home"},...(focusL2l?[{id:"focus",icon:focusL2l.emoji,label:focusL2l.word}]:[]),{id:"games",icon:"🎮",label:"Games"},{id:"log",icon:"📋",label:`${logged.length||""}`}].map(item=>{
-        const active=item.id==="log"?showLog:item.id==="focus"?(view==="l2ldetail"&&l2lItem?.word===focusL2l?.word):item.id==="games"?view==="game"||view==="games":view===item.id;
+      {[
+        {id:"home",icon:"🏠",label:"Home"},
+        ...(vowelFocus?[{id:"vowelfocus",icon:VOWEL_META[vowelFocus].mouth,label:VOWEL_META[vowelFocus].phoneme}]:[]),
+        ...(focusL2l?[{id:"focus",icon:focusL2l.emoji,label:focusL2l.word.length>6?focusL2l.word.slice(0,5)+"…":focusL2l.word}]:[]),
+        {id:"games",icon:"🎮",label:"Games"},
+        {id:"log",icon:"📋",label:`${logged.length||""}`}
+      ].map(item=>{
+        const active=item.id==="log"?showLog:item.id==="focus"?(view==="l2ldetail"&&l2lItem?.word===focusL2l?.word):item.id==="vowelfocus"?view==="vowelfocus":item.id==="games"?view==="game"||view==="games":view===item.id;
         return(
-          <button key={item.id} onClick={()=>{if(item.id==="log")setShowLog(!showLog);else if(item.id==="focus")nav("l2ldetail",{l2l:focusL2l});else if(item.id==="games")nav("home");else nav(item.id);}} style={{background:active?"rgba(255,255,255,0.07)":"none",border:"none",borderRadius:8,padding:"5px 14px",color:active?"white":"rgba(255,255,255,0.3)",cursor:"pointer",fontSize:9,fontWeight:700,fontFamily:"inherit",display:"flex",flexDirection:"column",alignItems:"center",gap:1,position:"relative"}}>
+          <button key={item.id} onClick={()=>{if(item.id==="log")setShowLog(!showLog);else if(item.id==="focus")nav("l2ldetail",{l2l:focusL2l});else if(item.id==="vowelfocus")nav("vowelfocus");else if(item.id==="games")nav("home");else nav(item.id);}} style={{background:active?"rgba(255,255,255,0.07)":"none",border:"none",borderRadius:8,padding:"5px 12px",color:active?"white":"rgba(255,255,255,0.3)",cursor:"pointer",fontSize:9,fontWeight:700,fontFamily:"inherit",display:"flex",flexDirection:"column",alignItems:"center",gap:1,position:"relative"}}>
             <span style={{fontSize:14}}>{item.icon}</span>{item.label}
-            {item.id==="log"&&logged.length>0&&<div style={{position:"absolute",top:1,right:6,width:13,height:13,borderRadius:"50%",background:"linear-gradient(135deg,#E040A0,#6C63FF)",fontSize:7,fontWeight:900,display:"flex",alignItems:"center",justifyContent:"center",color:"white"}}>{logged.length}</div>}
+            {item.id==="log"&&logged.length>0&&<div style={{position:"absolute",top:1,right:4,width:13,height:13,borderRadius:"50%",background:"linear-gradient(135deg,#E040A0,#6C63FF)",fontSize:7,fontWeight:900,display:"flex",alignItems:"center",justifyContent:"center",color:"white"}}>{logged.length}</div>}
           </button>
         );
       })}
@@ -446,7 +615,7 @@ export default function App() {
 
   return(
     <div style={{background:"linear-gradient(160deg,#08081a 0%,#140a28 35%,#0a142a 65%,#08081a 100%)",minHeight:"100vh",color:"white",fontFamily:"'Outfit','Helvetica Neue',sans-serif",position:"relative",overflow:"hidden"}}>
-      <style>{`@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700;800;900&display=swap');*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}button{font-family:inherit}input::placeholder{color:rgba(255,255,255,0.2)}@keyframes shimmer{to{background-position:200% center}}@keyframes holoShift{0%,100%{background-position:0% 50%}50%{background-position:100% 50%}}@keyframes pulse{0%,100%{transform:scale(1)}50%{transform:scale(1.05)}}::-webkit-scrollbar{width:0}`}</style>
+      <style>{`@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700;800;900&display=swap');*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}button{font-family:inherit}input::placeholder{color:rgba(255,255,255,0.2)}@keyframes shimmer{to{background-position:200% center}}@keyframes holoShift{0%,100%{background-position:0% 50%}50%{background-position:100% 50%}}@keyframes pulse{0%,100%{transform:scale(1)}50%{transform:scale(1.05)}}@keyframes popIn{0%{transform:scale(0.5);opacity:0}70%{transform:scale(1.08)}100%{transform:scale(1);opacity:1}}::-webkit-scrollbar{width:0}`}</style>
       <div style={{position:"fixed",top:-100,right:-60,width:320,height:320,borderRadius:"50%",background:"radial-gradient(circle,rgba(108,99,255,0.06),transparent 60%)",pointerEvents:"none"}}/>
       <div style={{position:"fixed",bottom:-80,left:-60,width:280,height:280,borderRadius:"50%",background:"radial-gradient(circle,rgba(224,64,160,0.04),transparent 60%)",pointerEvents:"none"}}/>
       <div style={{position:"relative",zIndex:1,maxWidth:420,margin:"0 auto"}}>
@@ -455,6 +624,7 @@ export default function App() {
         {view==="l2ldetail"&&renderL2lDetail()}
         {view==="dip"&&renderDip()}
         {view==="game"&&renderGame()}
+        {view==="vowelfocus"&&renderVowelFocus()}
         {showLog&&view!=="home"&&logged.length>0&&<div style={{position:"fixed",bottom:56,left:12,right:12,maxWidth:396,margin:"0 auto",zIndex:99}}>{renderLog()}</div>}
       </div>
       {renderNav()}
@@ -464,59 +634,154 @@ export default function App() {
 
 function PeekabooGame({ pool, addLog }) {
   const [round, setRound] = useState(null);
-  const [phase, setPhase] = useState("ready");
+  const [phase, setPhase] = useState("ready"); // ready|hide|countdown|reveal|react
   const [count, setCount] = useState(0);
+  const [streak, setStreak] = useState(0);
+  const [cntDown, setCntDown] = useState(3);
+
+  // Countdown logic
+  useEffect(() => {
+    if (phase !== "countdown") return;
+    setCntDown(3);
+    const id = setInterval(() => {
+      setCntDown(v => {
+        if (v <= 1) { clearInterval(id); setPhase("reveal"); return 3; }
+        return v - 1;
+      });
+    }, 800);
+    return () => clearInterval(id);
+  }, [phase]);
 
   const newRound = () => {
     const s = pick(pool);
     const d = pickDip();
     const challenges = {
-      D: [`Make a loooong "${s.sound}" behind your back — hold it 3+ seconds!`, `Quick rapid "${s.word}! ${s.word}! ${s.word}!" — short bursts while hidden!`],
-      I: [`Whisper "${s.sound}" so softly Remi has to really listen...`, `Start silent, then BURST out with a loud "${s.sound.toUpperCase()}"!`],
-      P: [`Use your highest squeaky voice for "${s.sound}" while hiding it`, `Deep low voice "${s.sound}" like a giant version of ${s.object}`],
+      D: [
+        [`Looooong "${s.sound}"`, `Hold the sound behind your back for a full 3 seconds — no cutting it short!`],
+        [`Short sharp bursts`, `"${s.word}! ${s.word}! ${s.word}!" — quick staccato pops, hidden from view`],
+      ],
+      I: [
+        [`Whisper`, `Make the ${s.object} sound so soft Remi has to work to hear it — barely audible`],
+        [`LOUD burst`, `Start silent… then EXPLODE with "${s.sound.toUpperCase()}" — surprise is the hook!`],
+      ],
+      P: [
+        [`Squeaky high voice`, `Hit your highest pitch for "${s.sound}" while the ${s.object} is hidden`],
+        [`Deep giant voice`, `Rumbling low "${s.sound}" like a slow-motion giant ${s.object}`],
+      ],
     };
-    setRound({ sound: s, dim: d, challenge: pick(challenges[d]) });
+    const ch = pick(challenges[d]);
+    setRound({ sound: s, dim: d, tag: ch[0], challenge: ch[1] });
     setPhase("hide");
   };
 
+  const logAndReact = (reaction) => {
+    addLog({dim:round.dim,sound:round.sound.word,label:`🙈 ${round.sound.emoji} ${round.sound.word} · ${DIP_META[round.dim].label} · ${reaction}`});
+    const responded = reaction !== "😐 No response";
+    setStreak(s => responded ? s + 1 : 0);
+    setCount(c => c + 1);
+  };
+
+  const m = round ? DIP_META[round.dim] : null;
+
   return (
     <div style={{display:"flex",flexDirection:"column",gap:10}}>
-      {phase==="ready"&&<G onClick={newRound} style={{padding:"28px 20px",textAlign:"center",border:"1px solid rgba(224,64,160,0.2)"}}>
-        <span style={{fontSize:44,display:"block",marginBottom:10}}>🙈</span>
-        <div style={{fontSize:16,fontWeight:800,color:"#E040A0"}}>Tap to start!</div>
-        <div style={{fontSize:11,color:"rgba(255,255,255,0.4)",marginTop:4}}>Round {count+1}</div>
-      </G>}
 
+      {/* Header bar */}
+      {count > 0 && (
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"2px 4px"}}>
+          <div style={{fontSize:11,color:"rgba(255,255,255,0.25)"}}>{count} round{count!==1?"s":""}</div>
+          {streak > 0 && <div style={{fontSize:12,fontWeight:700,color:"#F59E0B"}}>🔥 {streak} streak</div>}
+        </div>
+      )}
+
+      {/* READY */}
+      {phase==="ready"&&(
+        <G onClick={newRound} style={{padding:"36px 20px",textAlign:"center",border:"1px solid rgba(224,64,160,0.25)",background:"linear-gradient(135deg,rgba(224,64,160,0.06),rgba(178,75,243,0.06))"}}>
+          <div style={{fontSize:64,marginBottom:12,animation:"pulse 2s infinite"}}>🙈</div>
+          <div style={{fontSize:20,fontWeight:900,color:"#E040A0",marginBottom:6}}>Tap to start!</div>
+          <div style={{fontSize:11,color:"rgba(255,255,255,0.35)"}}>Round {count+1} {streak>1?`· 🔥${streak}`:""}</div>
+        </G>
+      )}
+
+      {/* HIDE */}
       {phase==="hide"&&round&&(
-        <div>
-          <G style={{padding:"16px",textAlign:"center",marginBottom:10,border:`1px solid ${DIP_META[round.dim].color}33`}}>
-            <div style={{fontSize:9,fontWeight:700,letterSpacing:"0.15em",textTransform:"uppercase",color:DIP_META[round.dim].color,marginBottom:8}}>🙈 Hide the {round.sound.object}!</div>
-            <span style={{fontSize:56,display:"block",marginBottom:10,filter:"blur(8px)",transition:"filter 0.3s"}}>{round.sound.emoji}</span>
-            <div style={{display:"inline-block",padding:"4px 10px",borderRadius:6,background:DIP_META[round.dim].gradient,fontSize:10,fontWeight:700,marginBottom:10}}>{DIP_META[round.dim].icon} {DIP_META[round.dim].label} Challenge</div>
-            <p style={{margin:0,fontSize:13,color:"rgba(255,255,255,0.7)",lineHeight:1.6,maxWidth:300,marginLeft:"auto",marginRight:"auto"}}>{round.challenge}</p>
-          </G>
-          <G style={{padding:"4px 10px",marginBottom:10}}><DipViz dim={round.dim}/></G>
-          <div style={{display:"flex",gap:8}}>
-            <button onClick={()=>setPhase("reveal")} style={{flex:1,padding:"12px",borderRadius:10,background:"linear-gradient(135deg,#E040A0,#B24BF3)",border:"none",color:"white",fontWeight:800,fontSize:14,cursor:"pointer",fontFamily:"inherit",animation:"pulse 1.5s infinite"}}>👀 Reveal!</button>
+        <div style={{display:"flex",flexDirection:"column",gap:10}}>
+          <div style={{padding:"14px",borderRadius:14,background:`linear-gradient(135deg,${m.color}15,rgba(0,0,0,0))`,border:`1px solid ${m.color}44`,textAlign:"center"}}>
+            <div style={{display:"inline-flex",alignItems:"center",gap:6,padding:"4px 12px",borderRadius:6,background:m.gradient,fontSize:10,fontWeight:700,marginBottom:12}}>{m.icon} {m.label} Challenge</div>
+            <div style={{fontSize:80,display:"block",marginBottom:10,filter:"blur(10px)",userSelect:"none",lineHeight:1}}>{round.sound.emoji}</div>
+            <div style={{fontSize:13,fontWeight:800,color:m.color,marginBottom:4}}>{round.tag}</div>
+            <div style={{fontSize:12,color:"rgba(255,255,255,0.6)",lineHeight:1.6,maxWidth:290,margin:"0 auto"}}>{round.challenge}</div>
           </div>
+
+          <G style={{padding:"4px 10px"}}><DipViz dim={round.dim}/></G>
+
+          <div style={{padding:"10px 12px",borderRadius:10,background:"rgba(255,255,255,0.04)",border:"1px solid rgba(255,255,255,0.06)",fontSize:11,color:"rgba(255,255,255,0.45)",textAlign:"center",lineHeight:1.5}}>
+            🎵 Make the sound now, then tap Reveal when ready
+          </div>
+
+          <button onClick={()=>setPhase("countdown")} style={{padding:"16px",borderRadius:12,background:`linear-gradient(135deg,${m.color},${m.color}99)`,border:"none",color:"white",fontWeight:900,fontSize:16,cursor:"pointer",fontFamily:"inherit",letterSpacing:"0.05em",boxShadow:`0 4px 24px ${m.color}44`}}>
+            👀 Reveal!
+          </button>
         </div>
       )}
 
-      {phase==="reveal"&&round&&(
-        <div>
-          <G style={{padding:"20px",textAlign:"center",marginBottom:10,border:"1px solid rgba(0,212,170,0.3)",background:"rgba(0,212,170,0.05)"}}>
-            <span style={{fontSize:64,display:"block",marginBottom:8}}>{round.sound.emoji}</span>
-            <div style={{fontSize:20,fontWeight:900,color:"white",marginBottom:4}}>{round.sound.word}!</div>
-            <div style={{fontSize:13,color:"rgba(255,255,255,0.5)"}}>"{round.sound.sound}"</div>
-            <p style={{margin:"12px 0 0",fontSize:12,color:"rgba(255,255,255,0.5)"}}>Now say it again with the toy visible — <strong style={{color:"white"}}>auditory sandwich!</strong></p>
-          </G>
-          <div style={{display:"flex",gap:6}}>
-            <button onClick={()=>{addLog({dim:round.dim,sound:round.sound.word,label:`🙈 Peek-a-Boo · ${round.sound.emoji} ${round.sound.word} · ${DIP_META[round.dim].label}`});setCount(c=>c+1);newRound();}} style={{flex:1,padding:"10px",borderRadius:8,background:"linear-gradient(135deg,#6C63FF,#00D4AA)",border:"none",color:"white",fontWeight:700,fontSize:12,cursor:"pointer",fontFamily:"inherit"}}>Next Round →</button>
-            <button onClick={()=>{addLog({dim:round.dim,sound:round.sound.word,label:`🙈 Peek-a-Boo · ${round.sound.emoji} ${round.sound.word} · ${DIP_META[round.dim].label}`});setCount(c=>c+1);setPhase("ready");}} style={{padding:"10px 14px",borderRadius:8,background:"rgba(255,255,255,0.06)",border:"1px solid rgba(255,255,255,0.1)",color:"rgba(255,255,255,0.5)",fontWeight:600,fontSize:12,cursor:"pointer",fontFamily:"inherit"}}>Done</button>
-          </div>
+      {/* COUNTDOWN */}
+      {phase==="countdown"&&(
+        <div style={{textAlign:"center",padding:"40px 0",display:"flex",flexDirection:"column",alignItems:"center",gap:8}}>
+          <div style={{fontSize:96,fontWeight:900,lineHeight:1,color:"white",animation:"pulse 0.8s infinite",textShadow:`0 0 40px ${m?.color||"#E040A0"}88`}}>{cntDown}</div>
+          <div style={{fontSize:12,color:"rgba(255,255,255,0.35)",letterSpacing:"0.15em",textTransform:"uppercase"}}>Get ready…</div>
         </div>
       )}
-      {count>0&&<div style={{textAlign:"center",fontSize:10,color:"rgba(255,255,255,0.25)",marginTop:4}}>{count} round{count!==1?"s":""} played</div>}
+
+      {/* REVEAL */}
+      {phase==="reveal"&&round&&(
+        <div style={{display:"flex",flexDirection:"column",gap:10}}>
+          <div style={{padding:"24px 16px",borderRadius:16,background:"linear-gradient(135deg,rgba(0,212,170,0.08),rgba(108,99,255,0.08))",border:"1px solid rgba(0,212,170,0.25)",textAlign:"center"}}>
+            <div style={{fontSize:96,display:"block",marginBottom:10,animation:"pulse 1s ease-out",filter:`drop-shadow(0 0 20px ${m.color}66)`}}>{round.sound.emoji}</div>
+            <div style={{fontSize:28,fontWeight:900,color:"white",marginBottom:4,letterSpacing:"0.05em"}}>{round.sound.word}!</div>
+            <div style={{fontSize:13,color:"rgba(255,255,255,0.45)",marginBottom:8}}>"{round.sound.sound}"</div>
+            {round.sound.ling && <div style={{display:"inline-block",padding:"3px 10px",borderRadius:6,background:`${LING_MAP[round.sound.ling].color}22`,color:LING_MAP[round.sound.ling].color,fontSize:10,fontWeight:700,marginBottom:8}}>Ling {LING_MAP[round.sound.ling].phoneme}</div>}
+            <div style={{fontSize:11,color:"rgba(255,255,255,0.4)",lineHeight:1.6}}>Say it again with the toy visible —<br/><strong style={{color:"white"}}>auditory sandwich! 🥪</strong></div>
+          </div>
+
+          <div style={{padding:"10px 14px",borderRadius:10,background:"rgba(255,255,255,0.04)",border:"1px solid rgba(255,255,255,0.06)"}}>
+            <div style={{fontSize:9,fontWeight:700,color:"rgba(255,255,255,0.3)",letterSpacing:"0.1em",textTransform:"uppercase",marginBottom:8}}>DIP recap — {m.label}</div>
+            <p style={{margin:0,fontSize:11,color:"rgba(255,255,255,0.5)",lineHeight:1.55}}>{L2L_DIP[round.sound.word]?.[round.dim]||""}</p>
+          </div>
+
+          <button onClick={()=>setPhase("react")} style={{padding:"14px",borderRadius:12,background:"linear-gradient(135deg,#6C63FF,#B24BF3)",border:"none",color:"white",fontWeight:800,fontSize:14,cursor:"pointer",fontFamily:"inherit"}}>
+            📊 How did Remi respond?
+          </button>
+        </div>
+      )}
+
+      {/* REACT */}
+      {phase==="react"&&round&&(
+        <div style={{display:"flex",flexDirection:"column",gap:10}}>
+          <div style={{textAlign:"center",padding:"10px 0 4px"}}>
+            <div style={{fontSize:9,fontWeight:700,letterSpacing:"0.15em",textTransform:"uppercase",color:"rgba(255,255,255,0.3)",marginBottom:6}}>What did Remi do?</div>
+            <div style={{fontSize:11,color:"rgba(255,255,255,0.4)"}}>{round.sound.emoji} {round.sound.word}</div>
+          </div>
+          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8}}>
+            {[
+              {icon:"👂",label:"Head turn",color:"#6C63FF"},
+              {icon:"😊",label:"Smiled",color:"#00D4AA"},
+              {icon:"🗣️",label:"Vocalized",color:"#E040A0"},
+              {icon:"👋",label:"Reached / looked",color:"#F59E0B"},
+            ].map(r=>(
+              <button key={r.label} onClick={()=>{logAndReact(`${r.icon} ${r.label}`);newRound();}} style={{padding:"16px 8px",borderRadius:12,background:`${r.color}18`,border:`1px solid ${r.color}44`,cursor:"pointer",fontFamily:"inherit",textAlign:"center"}}>
+                <div style={{fontSize:28,marginBottom:4}}>{r.icon}</div>
+                <div style={{fontSize:11,fontWeight:700,color:r.color}}>{r.label}</div>
+              </button>
+            ))}
+          </div>
+          <div style={{display:"flex",gap:8}}>
+            <button onClick={()=>{logAndReact("😐 No response");newRound();}} style={{flex:1,padding:"12px",borderRadius:10,background:"rgba(255,255,255,0.05)",border:"1px solid rgba(255,255,255,0.1)",color:"rgba(255,255,255,0.4)",fontWeight:700,fontSize:12,cursor:"pointer",fontFamily:"inherit"}}>😐 No response</button>
+            <button onClick={()=>{logAndReact("⏭ Skipped");setPhase("ready");}} style={{padding:"12px 14px",borderRadius:10,background:"rgba(255,255,255,0.04)",border:"1px solid rgba(255,255,255,0.06)",color:"rgba(255,255,255,0.25)",fontWeight:600,fontSize:11,cursor:"pointer",fontFamily:"inherit"}}>Done</button>
+          </div>
+          {streak>=3&&<div style={{textAlign:"center",padding:"8px",borderRadius:8,background:"linear-gradient(135deg,rgba(245,158,11,0.15),rgba(224,64,160,0.1))",border:"1px solid rgba(245,158,11,0.3)",fontSize:12,color:"#F59E0B",fontWeight:700}}>🔥 {streak} responses in a row! Remi is ON!</div>}
+        </div>
+      )}
     </div>
   );
 }
