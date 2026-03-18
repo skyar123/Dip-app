@@ -109,6 +109,8 @@ const STAGES = [
   {key:"U",label:"Use",color:"#F59E0B"},
 ];
 
+const WORD_PALETTE = ["#FF6B6B","#4ECDC4","#45B7D1","#96CEB4","#FFE66D","#C7A4F5","#FF9F43","#54A0FF","#2ECC71","#01CBC6","#FF6348","#A29BFE","#FD79A8","#FDCB6E","#6C5CE7","#00B894"];
+
 const GAMES = [
   { id:"peekaboo",   name:"Sound Peek-a-Boo", icon:"🙈", color:"#E040A0", gradient:"linear-gradient(135deg,#E040A0,#B24BF3)", desc:"Hide, make the sound, reveal!" },
   { id:"dipdice",    name:"DIP Dice",          icon:"🎲", color:"#6C63FF", gradient:"linear-gradient(135deg,#6C63FF,#00D4AA)", desc:"Roll a random sound + DIP challenge" },
@@ -383,14 +385,24 @@ export default function App() {
 
       {/* Vocabulary */}
       <div style={SL}>Vocabulary</div>
-      <div style={{display:"flex",flexDirection:"column",gap:6,marginBottom:20}}>
+      <div style={{display:"flex",flexDirection:"column",gap:8,marginBottom:20}}>
         {Object.entries(VOCAB_CATEGORIES).map(([key,cat])=>{
-          const count=key==="power"?POWER_WORDS.length:key==="l2l"?WORDS.l2l.length:(WORDS[key]||[]).length;
+          const allWords=key==="power"?POWER_WORDS:key==="l2l"?null:(WORDS[key]||[]);
+          const count=key==="l2l"?WORDS.l2l.length:allWords.length;
+          const tracked=allWords?allWords.filter(w=>Object.values(tracking[w]||{}).some(Boolean)).length:0;
+          const pct=allWords&&allWords.length>0?Math.round((tracked/allWords.length)*100):0;
           return(
-            <button key={key} onClick={()=>setSubView({type:"cat",data:key})} style={{padding:"10px 12px",borderRadius:12,background:"rgba(255,255,255,0.04)",border:`1px solid rgba(255,255,255,0.06)`,cursor:"pointer",fontFamily:"inherit",display:"flex",alignItems:"center",gap:10}}>
-              <div style={{width:34,height:34,borderRadius:9,background:`${cat.color}18`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:16,flexShrink:0}}>{cat.icon}</div>
-              <div style={{flex:1,textAlign:"left"}}><div style={{fontWeight:700,fontSize:13,color:"white"}}>{cat.label}</div><div style={{fontSize:9,color:"rgba(255,255,255,0.35)"}}>{cat.desc}</div></div>
-              <div style={{fontSize:15,fontWeight:900,color:cat.color}}>{count}</div>
+            <button key={key} onClick={()=>setSubView({type:"cat",data:key})} style={{padding:"13px 14px",borderRadius:15,background:`linear-gradient(135deg,${cat.color}15,${cat.color}05)`,border:`1px solid ${cat.color}33`,cursor:"pointer",fontFamily:"inherit",display:"flex",alignItems:"center",gap:12,boxShadow:`0 2px 10px ${cat.color}10`,WebkitTapHighlightColor:"transparent"}}>
+              <div style={{width:42,height:42,borderRadius:12,background:`${cat.color}25`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:22,flexShrink:0,boxShadow:`0 2px 8px ${cat.color}22`}}>{cat.icon}</div>
+              <div style={{flex:1,textAlign:"left"}}>
+                <div style={{fontWeight:800,fontSize:14,color:"white",marginBottom:2}}>{cat.label}</div>
+                <div style={{fontSize:9,color:"rgba(255,255,255,0.35)",marginBottom:allWords?5:0}}>{cat.desc}</div>
+                {allWords&&<div><div style={{height:5,borderRadius:3,background:"rgba(255,255,255,0.06)",overflow:"hidden"}}><div style={{height:"100%",borderRadius:3,width:`${pct}%`,background:cat.color,transition:"width 0.4s"}}/></div></div>}
+              </div>
+              <div style={{textAlign:"right",flexShrink:0}}>
+                <div style={{fontSize:20,fontWeight:900,color:cat.color,lineHeight:1}}>{count}</div>
+                {allWords&&pct>0&&<div style={{fontSize:8,color:cat.color,fontWeight:700,marginTop:2}}>{pct}%</div>}
+              </div>
             </button>
           );
         })}
@@ -479,39 +491,70 @@ export default function App() {
       return(
         <div style={{padding:"0 16px 100px"}}>
           <div style={{paddingTop:14}}>{backBtn}</div>
-          <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:4}}><span style={{fontSize:22}}>{cat.icon}</span><h2 style={{margin:0,fontSize:22,fontWeight:900,color:cat.color}}>{cat.label}</h2></div>
-          <p style={{margin:"0 0 10px",fontSize:11,color:"rgba(255,255,255,0.35)"}}>{cat.desc} · {words.length} items</p>
+          <div style={{padding:"16px",borderRadius:18,background:`linear-gradient(135deg,${cat.color}25,${cat.color}08)`,border:`1px solid ${cat.color}44`,marginBottom:14,display:"flex",alignItems:"center",gap:12}}>
+            <div style={{width:52,height:52,borderRadius:14,background:`${cat.color}30`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:28,flexShrink:0,boxShadow:`0 4px 16px ${cat.color}33`}}>{cat.icon}</div>
+            <div>
+              <h2 style={{margin:"0 0 2px",fontSize:24,fontWeight:900,color:cat.color,lineHeight:1}}>{cat.label}</h2>
+              <div style={{fontSize:10,color:"rgba(255,255,255,0.45)"}}>{cat.desc} · {words.length} words</div>
+            </div>
+          </div>
           {isL2l&&<div style={{position:"relative",marginBottom:10}}>
             <input value={searchQuery} onChange={e=>setSearchQuery(e.target.value)} placeholder="🔍 Filter…" style={{width:"100%",padding:"9px 36px 9px 14px",borderRadius:10,background:"rgba(255,255,255,0.05)",border:"1px solid rgba(255,255,255,0.08)",color:"white",fontSize:12,outline:"none",fontFamily:"inherit"}}/>
             {searchQuery&&<button onClick={()=>setSearchQuery("")} style={{position:"absolute",right:10,top:"50%",transform:"translateY(-50%)",background:"none",border:"none",color:"rgba(255,255,255,0.4)",fontSize:16,cursor:"pointer",lineHeight:1}}>×</button>}
           </div>}
-          <div style={{display:"flex",gap:3,marginBottom:10,flexWrap:"wrap"}}>
-            {STAGES.map(st=><div key={st.key} style={{display:"flex",alignItems:"center",gap:3,padding:"3px 6px",borderRadius:5,background:"rgba(255,255,255,0.04)"}}><div style={{width:7,height:7,borderRadius:2,background:st.color}}/><span style={{fontSize:8,color:"rgba(255,255,255,0.4)",fontWeight:600}}>{st.key}={st.label}</span></div>)}
+          <div style={{display:"flex",gap:5,marginBottom:12,flexWrap:"wrap"}}>
+            {STAGES.map(st=><div key={st.key} style={{display:"flex",alignItems:"center",gap:5,padding:"5px 9px",borderRadius:8,background:`${st.color}15`,border:`1px solid ${st.color}33`}}><div style={{width:8,height:8,borderRadius:2,background:st.color}}/><span style={{fontSize:10,color:"rgba(255,255,255,0.65)",fontWeight:700}}>{st.key} = {st.label}</span></div>)}
           </div>
           {!isL2l&&words.length>=2&&<button onClick={()=>setSubView({type:"vocabgame",data:key})} style={{width:"100%",padding:"14px 16px",borderRadius:14,background:`linear-gradient(135deg,${cat.color},${cat.color}99)`,border:"none",cursor:"pointer",fontFamily:"inherit",marginBottom:10,display:"flex",alignItems:"center",gap:10,boxShadow:`0 4px 20px ${cat.color}22`,WebkitTapHighlightColor:"transparent"}}>
             <span style={{fontSize:22}}>🎮</span>
             <div style={{flex:1,textAlign:"left"}}><div style={{fontSize:14,fontWeight:900,color:"white"}}>Play Listening Game</div><div style={{fontSize:10,color:"rgba(255,255,255,0.65)"}}>DIP-guided word activities</div></div>
             <span style={{fontSize:18,color:"rgba(255,255,255,0.5)"}}>›</span>
           </button>}
-          <div style={{display:"flex",flexDirection:"column",gap:5}}>
-            {words.map((item,idx)=>{
-              const word=isL2l?item.word:item; const isPW=POWER_WORDS.includes(word); const tr=tracking[word]||{};
-              return(
-                <G key={idx} onClick={isL2l?()=>openOverlay(item):undefined} style={{padding:"9px 11px"}}>
-                  <div style={{display:"flex",alignItems:"center",gap:8}}>
-                    {isL2l&&<div style={{width:40,height:40,borderRadius:10,background:item.bg,display:"flex",alignItems:"center",justifyContent:"center",fontSize:22,flexShrink:0}}>{item.emoji}</div>}
-                    <div style={{flex:1}}>
-                      <div style={{display:"flex",alignItems:"center",gap:5}}><span style={{fontWeight:700,fontSize:13,color:"white"}}>{isL2l?item.word:word}</span>{isPW&&<span style={{fontSize:7,fontWeight:700,padding:"1px 4px",borderRadius:3,background:"rgba(255,107,107,0.15)",color:"#FF6B6B"}}>POWER</span>}</div>
-                      {isL2l&&<div style={{fontSize:9,color:"rgba(255,255,255,0.3)"}}>{item.object} · {item.sound}</div>}
+          {isL2l ? (
+            <div style={{display:"flex",flexDirection:"column",gap:6}}>
+              {words.map((item,idx)=>{
+                const word=item.word; const tr=tracking[word]||{};
+                return(
+                  <G key={idx} onClick={()=>openOverlay(item)} style={{padding:"10px 12px"}}>
+                    <div style={{display:"flex",alignItems:"center",gap:10}}>
+                      <div style={{width:44,height:44,borderRadius:12,background:item.bg,display:"flex",alignItems:"center",justifyContent:"center",fontSize:24,flexShrink:0,boxShadow:"0 2px 10px rgba(0,0,0,0.3)"}}>{item.emoji}</div>
+                      <div style={{flex:1}}>
+                        <span style={{fontWeight:800,fontSize:14,color:"white"}}>{word}</span>
+                        <div style={{fontSize:9,color:"rgba(255,255,255,0.35)"}}>{item.object} · {item.sound}</div>
+                      </div>
+                      <div style={{display:"flex",gap:3}}>
+                        {STAGES.map(st=><button key={st.key} onClick={e=>{e.stopPropagation();toggleTrack(word,st.key);}} style={{width:28,height:28,borderRadius:7,fontSize:9,fontWeight:800,cursor:"pointer",fontFamily:"inherit",background:tr[st.key]?st.color:"rgba(255,255,255,0.05)",color:tr[st.key]?"white":"rgba(255,255,255,0.25)",border:tr[st.key]?"none":"1px solid rgba(255,255,255,0.08)",display:"flex",alignItems:"center",justifyContent:"center",transition:"all 0.2s",transform:tr[st.key]?"scale(1.12)":"scale(1)",boxShadow:tr[st.key]?`0 2px 8px ${st.color}55`:"none"}}>{st.key}</button>)}
+                      </div>
                     </div>
-                    <div style={{display:"flex",gap:2}}>
-                      {STAGES.map(st=><button key={st.key} onClick={e=>{e.stopPropagation();toggleTrack(word,st.key);}} style={{width:24,height:24,borderRadius:5,fontSize:8,fontWeight:800,cursor:"pointer",fontFamily:"inherit",background:tr[st.key]?st.color:"rgba(255,255,255,0.04)",color:tr[st.key]?"white":"rgba(255,255,255,0.2)",border:tr[st.key]?"none":"1px solid rgba(255,255,255,0.06)",display:"flex",alignItems:"center",justifyContent:"center",transition:"all 0.15s"}}>{st.key}</button>)}
+                  </G>
+                );
+              })}
+            </div>
+          ) : (
+            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
+              {words.map((item,idx)=>{
+                const word=item; const isPW=POWER_WORDS.includes(word); const tr=tracking[word]||{};
+                const clr=WORD_PALETTE[idx%WORD_PALETTE.length];
+                const tracked=STAGES.filter(st=>tr[st.key]).length;
+                return(
+                  <div key={idx} style={{padding:"16px 14px 12px",borderRadius:18,background:`linear-gradient(145deg,${clr}28,${clr}0d)`,border:`2px solid ${clr}${tracked>0?"88":"33"}`,display:"flex",flexDirection:"column",gap:10,boxShadow:tracked>0?`0 4px 16px ${clr}25`:"none",transition:"all 0.25s"}}>
+                    <div style={{flex:1}}>
+                      <div style={{fontSize:22,fontWeight:900,color:"white",lineHeight:1.1,letterSpacing:"-0.01em",marginBottom:isPW?5:0}}>{word}</div>
+                      {isPW&&<span style={{fontSize:8,fontWeight:800,padding:"2px 6px",borderRadius:5,background:"rgba(255,107,107,0.2)",color:"#FF8080",display:"inline-block"}}>⚡ POWER</span>}
+                      {tracked>0&&<div style={{fontSize:9,color:clr,fontWeight:700,marginTop:4,letterSpacing:"0.05em"}}>{"●".repeat(tracked)}{"○".repeat(4-tracked)}</div>}
+                    </div>
+                    <div style={{display:"flex",gap:3}}>
+                      {STAGES.map(st=>(
+                        <button key={st.key} onClick={()=>toggleTrack(word,st.key)} style={{flex:1,padding:"7px 2px",borderRadius:8,fontSize:9,fontWeight:800,cursor:"pointer",fontFamily:"inherit",background:tr[st.key]?st.color:"rgba(255,255,255,0.06)",color:tr[st.key]?"white":"rgba(255,255,255,0.3)",border:tr[st.key]?"none":"1px solid rgba(255,255,255,0.1)",transition:"all 0.2s",transform:tr[st.key]?"scale(1.06)":"scale(1)",boxShadow:tr[st.key]?`0 2px 8px ${st.color}55`:"none"}}>
+                          {st.key}
+                        </button>
+                      ))}
                     </div>
                   </div>
-                </G>
-              );
-            })}
-          </div>
+                );
+              })}
+            </div>
+          )}
         </div>
       );
     }
