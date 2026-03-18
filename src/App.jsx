@@ -488,6 +488,11 @@ export default function App() {
           <div style={{display:"flex",gap:3,marginBottom:10,flexWrap:"wrap"}}>
             {STAGES.map(st=><div key={st.key} style={{display:"flex",alignItems:"center",gap:3,padding:"3px 6px",borderRadius:5,background:"rgba(255,255,255,0.04)"}}><div style={{width:7,height:7,borderRadius:2,background:st.color}}/><span style={{fontSize:8,color:"rgba(255,255,255,0.4)",fontWeight:600}}>{st.key}={st.label}</span></div>)}
           </div>
+          {!isL2l&&words.length>=2&&<button onClick={()=>setSubView({type:"vocabgame",data:key})} style={{width:"100%",padding:"14px 16px",borderRadius:14,background:`linear-gradient(135deg,${cat.color},${cat.color}99)`,border:"none",cursor:"pointer",fontFamily:"inherit",marginBottom:10,display:"flex",alignItems:"center",gap:10,boxShadow:`0 4px 20px ${cat.color}22`,WebkitTapHighlightColor:"transparent"}}>
+            <span style={{fontSize:22}}>🎮</span>
+            <div style={{flex:1,textAlign:"left"}}><div style={{fontSize:14,fontWeight:900,color:"white"}}>Play Listening Game</div><div style={{fontSize:10,color:"rgba(255,255,255,0.65)"}}>DIP-guided word activities</div></div>
+            <span style={{fontSize:18,color:"rgba(255,255,255,0.5)"}}>›</span>
+          </button>}
           <div style={{display:"flex",flexDirection:"column",gap:5}}>
             {words.map((item,idx)=>{
               const word=isL2l?item.word:item; const isPW=POWER_WORDS.includes(word); const tr=tracking[word]||{};
@@ -510,6 +515,22 @@ export default function App() {
         </div>
       );
     }
+
+    if(subView.type==="vocabgame"){
+      const key=subView.data; const cat=VOCAB_CATEGORIES[key]; if(!cat)return null;
+      const words=key==="power"?POWER_WORDS:(WORDS[key]||[]);
+      return(
+        <div style={{padding:"0 16px 100px"}}>
+          <div style={{paddingTop:14}}>{backBtn}</div>
+          <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:16}}>
+            <span style={{fontSize:22}}>{cat.icon}</span>
+            <h2 style={{margin:0,fontSize:20,fontWeight:900,color:cat.color}}>{cat.label}</h2>
+          </div>
+          <VocabListenGame words={words} cat={cat} addLog={addLog}/>
+        </div>
+      );
+    }
+
     return null;
   };
 
@@ -932,6 +953,150 @@ function StoryChainGame({ pool, addLog }) {
         <G style={{padding:"12px 14px"}}><p style={{margin:0,fontSize:11,color:"rgba(255,255,255,0.5)",lineHeight:1.6}}>Tell the story with toys if you have them. Repeat 2-3 times — repetition is gold for CI listeners.</p></G>
         <button onClick={()=>addLog({dim:"📖",sound:chain.sounds.map(s=>s.word).join("+"),label:`📖 Story · ${chain.sounds.map(s=>s.emoji).join("")}`,note:true})} style={{padding:"10px",borderRadius:8,background:"rgba(255,255,255,0.06)",border:"1px solid rgba(255,255,255,0.1)",color:"rgba(255,255,255,0.5)",fontWeight:700,fontSize:12,cursor:"pointer",fontFamily:"inherit"}}>✓ Log this story</button>
       </>)}
+    </div>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════════
+// VOCAB LISTEN GAME  — DIP-guided listening game for vocabulary
+// ═══════════════════════════════════════════════════════════════
+
+function VocabListenGame({ words, cat, addLog }) {
+  const [phase, setPhase]   = useState("ready"); // ready|show|respond
+  const [round, setRound]   = useState(null);
+  const [count, setCount]   = useState(0);
+  const [streak, setStreak] = useState(0);
+
+  const newRound = () => {
+    const target = pick(words);
+    const others = pickN(words.filter(w => w !== target), Math.min(2, words.length - 1));
+    const dim = pickDip();
+    const challenges = {
+      D: [
+        `Say "${target}" loooooong — really stretch it out`,
+        `Quick "${target}! ${target}! ${target}!" — short punchy bursts`,
+      ],
+      I: [
+        `Whisper "${target}" softly — make Remi lean in to hear`,
+        `Silent… then "${target.toUpperCase()}!" — full voice surprise`,
+      ],
+      P: [
+        `Squeaky high voice: "${target}" ↗`,
+        `Deep low rumble: "${target}" ↘`,
+      ],
+    };
+    setRound({ target, others, dim, tip: pick(challenges[dim]) });
+    setPhase("show");
+  };
+
+  const logResponse = (reaction) => {
+    if (!round) return;
+    addLog({ dim: round.dim, sound: round.target, label: `${cat.icon} ${cat.label} · "${round.target}" · ${DIP_META[round.dim].label} · ${reaction}` });
+    setStreak(s => reaction.includes("No response") ? 0 : s + 1);
+    setCount(c => c + 1);
+    newRound();
+  };
+
+  const m = round ? DIP_META[round.dim] : null;
+
+  return (
+    <div style={{display:"flex",flexDirection:"column",gap:12}}>
+
+      {/* streak header */}
+      {count>0&&(
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"0 4px"}}>
+          <div style={{fontSize:12,color:"rgba(255,255,255,0.25)",fontWeight:600}}>{count} round{count!==1?"s":""}</div>
+          {streak>=2&&<div style={{fontSize:14,fontWeight:900,color:"#F59E0B",textShadow:"0 0 12px rgba(245,158,11,0.5)"}}>🔥 {streak} in a row!</div>}
+        </div>
+      )}
+
+      {/* ── READY ── */}
+      {phase==="ready"&&(
+        <button onClick={newRound} style={{padding:"40px 24px",borderRadius:24,background:`linear-gradient(145deg,${cat.color},${cat.color}88,rgba(108,99,255,0.8))`,border:"none",cursor:"pointer",fontFamily:"inherit",textAlign:"center",boxShadow:`0 8px 40px ${cat.color}44`,WebkitTapHighlightColor:"transparent"}}>
+          <div style={{fontSize:80,marginBottom:12,display:"block",animation:"pulse 2s infinite"}}>🎮</div>
+          <div style={{fontSize:26,fontWeight:900,color:"white",marginBottom:6}}>Tap to Start!</div>
+          <div style={{fontSize:13,color:"rgba(255,255,255,0.65)"}}>Round {count+1} · DIP Listening</div>
+        </button>
+      )}
+
+      {/* ── SHOW ── */}
+      {phase==="show"&&round&&(
+        <>
+          {/* DIP badge */}
+          <div style={{textAlign:"center"}}>
+            <div style={{display:"inline-flex",alignItems:"center",gap:8,padding:"8px 18px",borderRadius:50,background:m.gradient,boxShadow:`0 4px 20px ${m.color}44`,fontSize:13,fontWeight:800,color:"white"}}>
+              <span style={{fontSize:16}}>{m.icon}</span>{m.label}
+            </div>
+          </div>
+
+          {/* Target word – big card */}
+          <div style={{borderRadius:24,background:`linear-gradient(145deg,${cat.color}33,${cat.color}11)`,border:`2px solid ${cat.color}66`,padding:"36px 20px",textAlign:"center"}}>
+            <div style={{fontSize:11,fontWeight:700,letterSpacing:"0.2em",textTransform:"uppercase",color:"rgba(255,255,255,0.35)",marginBottom:12}}>Say this word</div>
+            <div style={{fontSize:54,fontWeight:900,color:"white",letterSpacing:"-0.02em",marginBottom:16,lineHeight:1,textShadow:`0 0 40px ${cat.color}88`}}>{round.target}</div>
+            <div style={{padding:"12px 16px",borderRadius:12,background:`${m.color}18`,border:`1px solid ${m.color}33`}}>
+              <div style={{fontSize:13,color:"rgba(255,255,255,0.75)",lineHeight:1.5}}>{round.tip}</div>
+            </div>
+          </div>
+
+          {/* DIP viz */}
+          <div style={{padding:"6px 16px",borderRadius:12,background:"rgba(255,255,255,0.04)",border:"1px solid rgba(255,255,255,0.06)"}}>
+            <DipViz dim={round.dim}/>
+          </div>
+
+          {/* Distractors – shown smaller for context */}
+          {round.others.length>0&&(
+            <div style={{display:"flex",gap:8}}>
+              {round.others.map((w,i)=>(
+                <div key={i} style={{flex:1,padding:"12px 8px",borderRadius:12,background:"rgba(255,255,255,0.04)",border:"1px solid rgba(255,255,255,0.06)",textAlign:"center"}}>
+                  <div style={{fontSize:16,fontWeight:700,color:"rgba(255,255,255,0.3)"}}>{w}</div>
+                  <div style={{fontSize:8,color:"rgba(255,255,255,0.15)",marginTop:3}}>distractor</div>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* Respond button */}
+          <button onClick={()=>setPhase("respond")} style={{padding:"20px",borderRadius:18,background:"linear-gradient(135deg,#6C63FF,#B24BF3)",border:"none",color:"white",fontWeight:900,fontSize:18,cursor:"pointer",fontFamily:"inherit",boxShadow:"0 6px 24px rgba(108,99,255,0.4)",animation:"pulse 1.8s infinite"}}>
+            📊 How did Remi respond?
+          </button>
+        </>
+      )}
+
+      {/* ── RESPOND ── */}
+      {phase==="respond"&&round&&(
+        <>
+          <div style={{textAlign:"center",padding:"8px 0"}}>
+            <div style={{fontSize:9,fontWeight:700,letterSpacing:"0.18em",textTransform:"uppercase",color:"rgba(255,255,255,0.3)",marginBottom:6}}>Word said:</div>
+            <div style={{fontSize:40,fontWeight:900,color:cat.color,letterSpacing:"-0.02em"}}>{round.target}</div>
+          </div>
+
+          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12}}>
+            {[
+              {icon:"👂",label:"Turned / looked", color:"#6C63FF",bg:"linear-gradient(145deg,#6C63FF44,#6C63FF11)"},
+              {icon:"😊",label:"Smiled",           color:"#00D4AA",bg:"linear-gradient(145deg,#00D4AA44,#00D4AA11)"},
+              {icon:"🗣️",label:"Vocalized",        color:"#E040A0",bg:"linear-gradient(145deg,#E040A044,#E040A011)"},
+              {icon:"🏃",label:"Did the action!",  color:"#F59E0B",bg:"linear-gradient(145deg,#F59E0B44,#F59E0B11)"},
+            ].map(r=>(
+              <button key={r.label} onClick={()=>logResponse(`${r.icon} ${r.label}`)} style={{padding:"22px 10px",borderRadius:20,background:r.bg,border:`2px solid ${r.color}55`,cursor:"pointer",fontFamily:"inherit",textAlign:"center",WebkitTapHighlightColor:"transparent"}}>
+                <div style={{fontSize:44,marginBottom:6}}>{r.icon}</div>
+                <div style={{fontSize:13,fontWeight:800,color:r.color,lineHeight:1.2}}>{r.label}</div>
+              </button>
+            ))}
+          </div>
+
+          <button onClick={()=>logResponse("😐 No response")} style={{padding:"18px",borderRadius:16,background:"rgba(255,255,255,0.06)",border:"1px solid rgba(255,255,255,0.1)",color:"rgba(255,255,255,0.5)",fontWeight:700,fontSize:16,cursor:"pointer",fontFamily:"inherit"}}>
+            😐 No response
+          </button>
+
+          {streak>=3&&(
+            <div style={{textAlign:"center",padding:"12px",borderRadius:14,background:"linear-gradient(135deg,rgba(245,158,11,0.15),rgba(224,64,160,0.1))",border:"1px solid rgba(245,158,11,0.3)"}}>
+              <div style={{fontSize:28,marginBottom:4}}>🔥</div>
+              <div style={{fontSize:15,fontWeight:900,color:"#F59E0B"}}>{streak} responses in a row!</div>
+              <div style={{fontSize:11,color:"rgba(255,255,255,0.5)",marginTop:2}}>Remi is tuned in — keep going!</div>
+            </div>
+          )}
+        </>
+      )}
     </div>
   );
 }
