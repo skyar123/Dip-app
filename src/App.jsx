@@ -694,12 +694,36 @@ export default function App() {
 // PEEKABOO  — pre-K visual redesign
 // ═══════════════════════════════════════════════════════════════
 
+const POOL_DEFS = [
+  { id:"l2l",        label:"🔊 Sounds",    color:"#B24BF3" },
+  { id:"power",      label:"⚡ Power",     color:"#FF6B6B" },
+  { id:"action",     label:"🏃 Actions",   color:"#6C63FF" },
+  { id:"locaction",  label:"📍 Movement",  color:"#E040A0" },
+  { id:"attribution",label:"🏷️ Qualities", color:"#F59E0B" },
+  { id:"mix",        label:"🌟 Mix All",   color:"#00D4AA" },
+];
+
+function makeVocabItem(word, idx) {
+  return { word, emoji:"📣", sound:word, bg:`linear-gradient(145deg,${WORD_PALETTE[idx%WORD_PALETTE.length]}cc,${WORD_PALETTE[(idx+3)%WORD_PALETTE.length]}88)`, ling:null, isVocab:true };
+}
+
 function PeekabooGame({ pool, addLog }) {
   const [round,  setRound]  = useState(null);
   const [phase,  setPhase]  = useState("ready"); // ready|hide|countdown|reveal|react
   const [count,  setCount]  = useState(0);
   const [streak, setStreak] = useState(0);
   const [cntDown,setCntDown]= useState(3);
+  const [poolId, setPoolId] = useState("l2l");
+
+  const activePool = useMemo(()=>{
+    if(poolId==="l2l") return WORDS.l2l;
+    if(poolId==="mix") return [
+      ...WORDS.l2l,
+      ...Object.entries(WORDS).flatMap(([k,v])=>k!=="l2l"&&Array.isArray(v)?v.map(makeVocabItem):[])
+    ];
+    const raw=WORDS[poolId]||[];
+    return raw.map(makeVocabItem);
+  },[poolId]);
 
   // countdown 3-2-1
   useEffect(()=>{
@@ -715,7 +739,7 @@ function PeekabooGame({ pool, addLog }) {
   },[phase]);
 
   const newRound = () => {
-    const s=pick(pool); const d=pickDip();
+    const s=pick(activePool); const d=pickDip();
     const challenges={
       D:[
         {tag:"LOOOOONG",tip:`Hold "${s.sound}" for a full 3 seconds while it's hidden — slow and stretched`},
@@ -727,7 +751,7 @@ function PeekabooGame({ pool, addLog }) {
       ],
       P:[
         {tag:"TINY HIGH VOICE",tip:`Squeakiest voice you have for "${s.sound}"`},
-        {tag:"BIG LOW VOICE",tip:`Deepest rumble for "${s.sound}" — like a giant ${s.object}`},
+        {tag:"BIG LOW VOICE",tip:`Deepest rumble for "${s.sound}"`},
       ],
     };
     const ch=pick(challenges[d]);
@@ -759,11 +783,27 @@ function PeekabooGame({ pool, addLog }) {
 
       {/* ── READY ── */}
       {phase==="ready"&&(
-        <button onClick={newRound} style={{padding:"40px 24px",borderRadius:24,background:"linear-gradient(145deg,#E040A0,#B24BF3,#6C63FF)",border:"none",cursor:"pointer",fontFamily:"inherit",textAlign:"center",boxShadow:"0 8px 40px rgba(224,64,160,0.45)",WebkitTapHighlightColor:"transparent"}}>
-          <div style={{fontSize:100,marginBottom:12,display:"block",animation:"pulse 2s infinite",filter:"drop-shadow(0 4px 16px rgba(0,0,0,0.4))"}}>🙈</div>
-          <div style={{fontSize:28,fontWeight:900,color:"white",marginBottom:6}}>Tap to Play!</div>
-          <div style={{fontSize:14,color:"rgba(255,255,255,0.65)"}}>Round {count+1}</div>
-        </button>
+        <>
+          {/* Pool selector */}
+          <div style={{overflowX:"auto",WebkitOverflowScrolling:"touch",paddingBottom:4}}>
+            <div style={{display:"flex",gap:8,paddingBottom:2,width:"max-content"}}>
+              {POOL_DEFS.map(p=>(
+                <button key={p.id} onClick={()=>setPoolId(p.id)}
+                  style={{padding:"8px 14px",borderRadius:50,border:`2px solid ${p.color}`,
+                    background:poolId===p.id?p.color:"transparent",
+                    color:poolId===p.id?"white":p.color,fontWeight:700,fontSize:12,
+                    cursor:"pointer",fontFamily:"inherit",whiteSpace:"nowrap",WebkitTapHighlightColor:"transparent"}}>
+                  {p.label}
+                </button>
+              ))}
+            </div>
+          </div>
+          <button onClick={newRound} style={{padding:"40px 24px",borderRadius:24,background:"linear-gradient(145deg,#E040A0,#B24BF3,#6C63FF)",border:"none",cursor:"pointer",fontFamily:"inherit",textAlign:"center",boxShadow:"0 8px 40px rgba(224,64,160,0.45)",WebkitTapHighlightColor:"transparent"}}>
+            <div style={{fontSize:100,marginBottom:12,display:"block",animation:"pulse 2s infinite",filter:"drop-shadow(0 4px 16px rgba(0,0,0,0.4))"}}>🙈</div>
+            <div style={{fontSize:28,fontWeight:900,color:"white",marginBottom:6}}>Tap to Play!</div>
+            <div style={{fontSize:14,color:"rgba(255,255,255,0.65)"}}>Round {count+1} · {POOL_DEFS.find(p=>p.id===poolId)?.label||"Sounds"}</div>
+          </button>
+        </>
       )}
 
       {/* ── HIDE ── */}
@@ -780,7 +820,11 @@ function PeekabooGame({ pool, addLog }) {
           <div style={{borderRadius:24,background:"rgba(255,255,255,0.06)",border:`2px solid ${m.color}44`,padding:"32px 20px",textAlign:"center",position:"relative",overflow:"hidden"}}>
             {/* blurred emoji */}
             <div style={{fontSize:130,lineHeight:1,filter:"blur(14px)",userSelect:"none",marginBottom:16,opacity:0.7}}>{round.sound.emoji}</div>
-            <div style={{fontSize:13,color:"rgba(255,255,255,0.5)",fontStyle:"italic",marginBottom:4}}>It's hidden… make the sound!</div>
+            {/* Adult hint — visible word/sound */}
+            <div style={{fontSize:9,fontWeight:700,letterSpacing:"0.18em",textTransform:"uppercase",color:"rgba(255,255,255,0.35)",marginBottom:6}}>You say</div>
+            <div style={{fontSize:26,fontWeight:900,color:"white",marginBottom:4,textShadow:`0 2px 12px ${m.color}99`}}>{round.sound.word}</div>
+            {round.sound.sound!==round.sound.word&&<div style={{fontSize:14,color:"rgba(255,255,255,0.65)",fontStyle:"italic",marginBottom:4}}>"{round.sound.sound}"</div>}
+            <div style={{fontSize:12,color:"rgba(255,255,255,0.35)",fontStyle:"italic",marginTop:6}}>It's hidden… make the sound!</div>
           </div>
 
           {/* Instruction card */}
