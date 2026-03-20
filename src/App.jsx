@@ -111,6 +111,41 @@ const STAGES = [
 
 const WORD_PALETTE = ["#FF6B6B","#4ECDC4","#45B7D1","#96CEB4","#FFE66D","#C7A4F5","#FF9F43","#54A0FF","#2ECC71","#01CBC6","#FF6348","#A29BFE","#FD79A8","#FDCB6E","#6C5CE7","#00B894"];
 
+const WORD_EMOJI = {
+  // existence
+  name:"🏷️", mama:"👩", daddy:"👨", me:"🫵", you:"👆", baby:"👶",
+  cookie:"🍪", juice:"🧃", water:"💧", milk:"🥛", cup:"☕",
+  dress:"👗", pants:"👖", hat:"🎩", shoe:"👟", sock:"🧦",
+  eye:"👁️", nose:"👃", mouth:"👄", face:"😊", hair:"💇",
+  hi:"👋", "bye-bye":"👋", dog:"🐶", cow:"🐄", bird:"🐦", fish:"🐟",
+  ball:"⚽", fight:"🥊", car:"🚗", boat:"⛵", bed:"🛏️",
+  bathroom:"🚿", "home/house":"🏠", truck:"🚛", airplane:"✈️",
+  spoon:"🥄", box:"📦", chair:"🪑", floor:"🟫", table:"🪵", desk:"🖥️",
+  book:"📚", door:"🚪", block:"🟦", crayon:"🖍️", "night-night":"🌙",
+  picture:"🖼️", hook:"🪝", bucket:"🪣", wall:"🧱", "hearing aid":"👂",
+  // nonexistence
+  "all gone":"💨", "no more":"🚫",
+  // recurrence
+  more:"➕", another:"🔁", again:"🔄",
+  // reject
+  no:"🙅",
+  // attribution
+  dirty:"🤢", broken:"💔", hot:"🔥", soft:"🧸", big:"🐘",
+  heavy:"💪", little:"🐭", new:"✨", funny:"😄",
+  // possession
+  mine:"🫴",
+  // action
+  wash:"🧼", wait:"⏳", stop:"✋", eat:"🍽️", open:"📂",
+  help:"🤝", "say/talk":"💬", "show me":"🫵", touch:"☝️", turn:"🔄",
+  drink:"🥤", color:"🎨", cut:"✂️", sleep:"😴", ride:"🚴",
+  draw:"✏️", hold:"🫶", do:"✅", "stand up":"🧍",
+  // locaction
+  in:"📥", on:"⬆️", come:"🫵", sit:"🪑", go:"🏃", throw:"🎯",
+  give:"🎁", push:"💪", run:"🏃", up:"⬆️", down:"⬇️",
+  jump:"🦘", under:"⬇️", "pick up":"🫳", get:"🖐️", hang:"🪝",
+  find:"🔍", hide:"🙈",
+};
+
 const GAMES = [
   { id:"peekaboo", name:"Sound Peek-a-Boo", icon:"🙈", color:"#6C63FF", gradient:"linear-gradient(135deg,#1a1a4e,#2d1b69,#1a3a6e)", desc:"Hide, make the sound, reveal!" },
 ];
@@ -704,7 +739,7 @@ const POOL_DEFS = [
 ];
 
 function makeVocabItem(word, idx) {
-  return { word, emoji:"📣", sound:word, bg:`linear-gradient(145deg,${WORD_PALETTE[idx%WORD_PALETTE.length]}cc,${WORD_PALETTE[(idx+3)%WORD_PALETTE.length]}88)`, ling:null, isVocab:true };
+  return { word, emoji:WORD_EMOJI[word]||"📣", sound:word, bg:`linear-gradient(145deg,${WORD_PALETTE[idx%WORD_PALETTE.length]}cc,${WORD_PALETTE[(idx+3)%WORD_PALETTE.length]}88)`, ling:null, isVocab:true };
 }
 
 function PeekabooGame({ pool, addLog }) {
