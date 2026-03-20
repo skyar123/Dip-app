@@ -112,12 +112,10 @@ const STAGES = [
 const WORD_PALETTE = ["#FF6B6B","#4ECDC4","#45B7D1","#96CEB4","#FFE66D","#C7A4F5","#FF9F43","#54A0FF","#2ECC71","#01CBC6","#FF6348","#A29BFE","#FD79A8","#FDCB6E","#6C5CE7","#00B894"];
 
 const GAMES = [
-  { id:"peekaboo",   name:"Sound Peek-a-Boo", icon:"🙈", color:"#E040A0", gradient:"linear-gradient(135deg,#E040A0,#B24BF3)", desc:"Hide, make the sound, reveal!" },
-  { id:"dipdice",    name:"DIP Dice",          icon:"🎲", color:"#6C63FF", gradient:"linear-gradient(135deg,#6C63FF,#00D4AA)", desc:"Roll a random sound + DIP challenge" },
-  { id:"safari",     name:"Sound Safari",      icon:"🦁", color:"#F59E0B", gradient:"linear-gradient(135deg,#F59E0B,#FF6B6B)", desc:"Scavenger hunt through 5 sounds" },
-  { id:"contrast",   name:"Contrast Showdown", icon:"⚡", color:"#00D4AA", gradient:"linear-gradient(135deg,#00D4AA,#6C63FF)", desc:"Two sounds — make them DIFFERENT" },
-  { id:"storychain", name:"Story Chain",        icon:"📖", color:"#B24BF3", gradient:"linear-gradient(135deg,#B24BF3,#E040A0)", desc:"Build a tiny story from 3 sounds" },
+  { id:"peekaboo", name:"Sound Peek-a-Boo", icon:"🙈", color:"#6C63FF", gradient:"linear-gradient(135deg,#1a1a4e,#2d1b69,#1a3a6e)", desc:"Hide, make the sound, reveal!" },
 ];
+
+const LONG_SOUNDS = new Set(["ahhh","mooo","ummmm","sssss","shhhh","weeeee","grrrrr","ooooo","woo-woo","round-round","ee-ee-ee","cockadoodledoo","baaaa","tweet-tweet","swish-swish"]);
 
 // ═══════════════════════════════════════════════════════════════
 // HELPERS
@@ -182,12 +180,22 @@ export default function App() {
   const [searchQuery, setSearchQuery] = useState("");
   const [l2lTab, setL2lTab]       = useState("dip");
   const [gridCols, setGridCols]   = useState(3); // 2 or 3 for sounds grid
+  const [longFilter, setLongFilter] = useState(false);
 
   // ─── helpers ──────────────────────────────────────────────
   const toggleTrack = (word,stage) => setTracking(t=>({...t,[word]:{...(t[word]||{}),[stage]:!(t[word]||{})[stage]}}));
   const addLog      = entry => setLogged(l=>[...l,{...entry,time:new Date().toLocaleTimeString([],{hour:"2-digit",minute:"2-digit"}),id:Date.now()}]);
   const openOverlay = item  => { setL2lTab("dip"); setOverlay(item); };
   const closeOverlay= ()    => setOverlay(null);
+  const speakSound  = useCallback((text,e)=>{
+    if(e){e.preventDefault();e.stopPropagation();}
+    if(!('speechSynthesis' in window)) return;
+    const clean=text.replace(/[↗↘!?]/g,"").trim();
+    window.speechSynthesis.cancel();
+    const u=new SpeechSynthesisUtterance(clean);
+    u.rate=0.75; u.pitch=1.1; u.volume=1;
+    window.speechSynthesis.speak(u);
+  },[]);
 
   const soundPool = useMemo(()=>{
     if(focusL2l)  return WORDS.l2l.filter(s=>s.word===focusL2l.word||s.ling===focusL2l.ling);
@@ -234,25 +242,12 @@ export default function App() {
       )}
 
       {/* PEEK-A-BOO — hero card */}
-      <div style={{marginBottom:16}}>
-        <div style={SL}>⭐ Featured</div>
-        <button onClick={()=>setSubView({type:"game",data:"peekaboo"})} style={{width:"100%",padding:"24px 20px",borderRadius:20,background:"linear-gradient(135deg,#E040A0,#B24BF3,#6C63FF)",border:"none",cursor:"pointer",fontFamily:"inherit",textAlign:"center",boxShadow:"0 8px 32px rgba(224,64,160,0.35)"}}>
-          <div style={{fontSize:72,marginBottom:8,animation:"pulse 2s infinite"}}>🙈</div>
-          <div style={{fontSize:24,fontWeight:900,color:"white",marginBottom:4}}>Sound Peek-a-Boo</div>
-          <div style={{fontSize:13,color:"rgba(255,255,255,0.7)"}}>Hide · Sound · Reveal · React</div>
+      <div style={{marginBottom:20}}>
+        <button onClick={()=>setSubView({type:"game",data:"peekaboo"})} style={{width:"100%",padding:"28px 20px",borderRadius:24,background:"linear-gradient(145deg,#0d0d2b,#1a1a4e,#0d2245)",border:"2px solid rgba(108,99,255,0.35)",cursor:"pointer",fontFamily:"inherit",textAlign:"center",boxShadow:"0 8px 40px rgba(108,99,255,0.2), inset 0 1px 0 rgba(255,255,255,0.06)",WebkitTapHighlightColor:"transparent"}}>
+          <div style={{fontSize:80,marginBottom:10,display:"block",animation:"pulse 2s infinite",filter:"drop-shadow(0 0 24px rgba(108,99,255,0.5))"}}>🙈</div>
+          <div style={{fontSize:26,fontWeight:900,color:"white",marginBottom:6,letterSpacing:"-0.01em"}}>Sound Peek-a-Boo</div>
+          <div style={{fontSize:13,color:"rgba(255,255,255,0.45)",letterSpacing:"0.05em"}}>Hide · Sound · Reveal · React</div>
         </button>
-      </div>
-
-      {/* Other games */}
-      <div style={SL}>More Games</div>
-      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:20}}>
-        {GAMES.filter(g=>g.id!=="peekaboo").map(g=>(
-          <button key={g.id} onClick={()=>setSubView({type:"game",data:g.id})} style={{padding:"16px 12px",borderRadius:16,background:g.gradient,border:"none",cursor:"pointer",fontFamily:"inherit",textAlign:"center",boxShadow:`0 4px 16px ${g.color}28`}}>
-            <div style={{fontSize:36,marginBottom:6}}>{g.icon}</div>
-            <div style={{fontSize:13,fontWeight:800,color:"white",marginBottom:2}}>{g.name}</div>
-            <div style={{fontSize:9,color:"rgba(255,255,255,0.65)",lineHeight:1.4}}>{g.desc}</div>
-          </button>
-        ))}
       </div>
 
       {/* DIP quick-access */}
@@ -290,7 +285,8 @@ export default function App() {
     const q = searchQuery.toLowerCase();
     const filtered = WORDS.l2l.filter(s=>
       (!q||(s.word.includes(q)||s.object.includes(q)||s.sound.toLowerCase().includes(q))) &&
-      (!vowelFocus||s.ling===vowelFocus)
+      (!vowelFocus||s.ling===vowelFocus) &&
+      (!longFilter||LONG_SOUNDS.has(s.word))
     );
     return(
       <div style={{padding:"0 14px 100px"}}>
@@ -303,11 +299,12 @@ export default function App() {
             {searchQuery&&<button onClick={()=>setSearchQuery("")} style={{position:"absolute",right:10,top:"50%",transform:"translateY(-50%)",background:"none",border:"none",color:"rgba(255,255,255,0.4)",fontSize:18,cursor:"pointer",lineHeight:1}}>×</button>}
           </div>
 
-          {/* Vowel filter chips + grid size */}
+          {/* Filter chips + grid size */}
           <div style={{display:"flex",gap:6,flexWrap:"wrap",alignItems:"center"}}>
-            <button onClick={()=>setVowelFocus(null)} style={{padding:"5px 10px",borderRadius:8,background:!vowelFocus?"rgba(255,255,255,0.15)":"rgba(255,255,255,0.05)",border:"none",color:!vowelFocus?"white":"rgba(255,255,255,0.35)",fontSize:10,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>All</button>
+            <button onClick={()=>{setVowelFocus(null);setLongFilter(false);}} style={{padding:"5px 10px",borderRadius:8,background:(!vowelFocus&&!longFilter)?"rgba(255,255,255,0.15)":"rgba(255,255,255,0.05)",border:"none",color:(!vowelFocus&&!longFilter)?"white":"rgba(255,255,255,0.35)",fontSize:10,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>All</button>
+            <button onClick={()=>{setLongFilter(l=>!l);setVowelFocus(null);}} style={{padding:"5px 10px",borderRadius:8,background:longFilter?"linear-gradient(135deg,#6C63FF,#00D4AA)":"rgba(255,255,255,0.05)",border:"none",color:longFilter?"white":"rgba(108,99,255,0.8)",fontSize:10,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>⏱ Long</button>
             {Object.entries(VOWEL_META).map(([k,v])=>(
-              <button key={k} onClick={()=>setVowelFocus(vowelFocus===k?null:k)} style={{padding:"5px 10px",borderRadius:8,background:vowelFocus===k?v.gradient:"rgba(255,255,255,0.05)",border:"none",color:vowelFocus===k?"white":v.color,fontSize:10,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>{v.phoneme} {v.mouth}</button>
+              <button key={k} onClick={()=>{setVowelFocus(vowelFocus===k?null:k);setLongFilter(false);}} style={{padding:"5px 10px",borderRadius:8,background:vowelFocus===k?v.gradient:"rgba(255,255,255,0.05)",border:"none",color:vowelFocus===k?"white":v.color,fontSize:10,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>{v.phoneme} {v.mouth}</button>
             ))}
             <div style={{flex:1}}/>
             <button onClick={()=>setGridCols(c=>c===3?2:3)} style={{padding:"5px 10px",borderRadius:8,background:"rgba(255,255,255,0.05)",border:"1px solid rgba(255,255,255,0.08)",color:"rgba(255,255,255,0.4)",fontSize:10,cursor:"pointer",fontFamily:"inherit"}}>{gridCols===3?"⊞ 2-col":"⊟ 3-col"}</button>
@@ -319,15 +316,17 @@ export default function App() {
           {filtered.map((s,i)=>(
             <button key={i} onClick={()=>openOverlay(s)} style={{borderRadius:16,border:"none",cursor:"pointer",fontFamily:"inherit",padding:0,overflow:"hidden",background:"none",WebkitTapHighlightColor:"transparent"}}>
               {/* photo-style card */}
-              <div style={{background:s.bg,borderRadius:16,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",padding:"16px 8px 12px",minHeight:gridCols===3?120:150,position:"relative",boxShadow:"0 4px 16px rgba(0,0,0,0.3)"}}>
+              <div style={{background:s.bg,borderRadius:16,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",padding:"16px 8px 28px",minHeight:gridCols===3?120:150,position:"relative",boxShadow:"0 4px 16px rgba(0,0,0,0.3)"}}>
                 {/* ling badge */}
                 {s.ling&&<div style={{position:"absolute",top:6,right:6,fontSize:8,fontWeight:800,padding:"2px 5px",borderRadius:4,background:"rgba(0,0,0,0.35)",color:"white"}}>{LING_MAP[s.ling].phoneme}</div>}
-                {/* focus indicator */}
-                {focusL2l?.word===s.word&&<div style={{position:"absolute",top:6,left:6,width:8,height:8,borderRadius:"50%",background:"#B24BF3",boxShadow:"0 0 6px #B24BF3"}}/>}
+                {/* long sound badge */}
+                {LONG_SOUNDS.has(s.word)&&<div style={{position:"absolute",top:6,left:6,fontSize:8,fontWeight:800,padding:"2px 5px",borderRadius:4,background:"rgba(108,99,255,0.55)",color:"white"}}>⏱</div>}
                 {/* big emoji */}
                 <div style={{fontSize:gridCols===3?52:72,lineHeight:1,marginBottom:6,filter:"drop-shadow(0 2px 4px rgba(0,0,0,0.4))"}}>{s.emoji}</div>
                 <div style={{fontSize:gridCols===3?10:12,fontWeight:800,color:"white",textAlign:"center",lineHeight:1.2,textShadow:"0 1px 4px rgba(0,0,0,0.5)"}}>{s.word}</div>
                 <div style={{fontSize:8,color:"rgba(255,255,255,0.65)",marginTop:2,textAlign:"center",textShadow:"0 1px 3px rgba(0,0,0,0.5)"}}>{s.object}</div>
+                {/* speaker button */}
+                <button onClick={e=>speakSound(s.sound,e)} style={{position:"absolute",bottom:5,right:5,width:22,height:22,borderRadius:6,background:"rgba(0,0,0,0.4)",border:"1px solid rgba(255,255,255,0.18)",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",fontSize:10,WebkitTapHighlightColor:"transparent"}}>🔊</button>
               </div>
             </button>
           ))}
@@ -437,10 +436,6 @@ export default function App() {
           </div>
           {(focusL2l||vowelFocus)&&<div style={{fontSize:10,textAlign:"center",color:"#B24BF3",marginBottom:12,fontWeight:600}}>🎯 Filtered pool active — {soundPool.length} sounds</div>}
           {subView.data==="peekaboo"&&<PeekabooGame pool={soundPool.length>=2?soundPool:WORDS.l2l} addLog={addLog}/>}
-          {subView.data==="dipdice"&&<DipDiceGame pool={soundPool.length>=1?soundPool:WORDS.l2l} addLog={addLog}/>}
-          {subView.data==="safari"&&<SafariGame pool={WORDS.l2l} focusPool={soundPool} addLog={addLog}/>}
-          {subView.data==="contrast"&&<ContrastGame pool={WORDS.l2l} addLog={addLog}/>}
-          {subView.data==="storychain"&&<StoryChainGame pool={WORDS.l2l} addLog={addLog}/>}
         </div>
       );
     }
@@ -594,8 +589,9 @@ export default function App() {
             <button onClick={closeOverlay} style={{position:"absolute",top:14,right:14,width:28,height:28,borderRadius:"50%",background:"rgba(0,0,0,0.35)",border:"none",color:"white",fontSize:16,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",lineHeight:1}}>×</button>
             <div style={{fontSize:80,lineHeight:1,marginBottom:10,filter:"drop-shadow(0 4px 12px rgba(0,0,0,0.4))"}}>{s.emoji}</div>
             <div style={{fontSize:22,fontWeight:900,color:"white",marginBottom:4}}>{s.word}</div>
-            <div style={{fontSize:12,color:"rgba(255,255,255,0.75)"}}>"{s.sound}"</div>
-            {s.ling&&<div style={{display:"inline-block",marginTop:6,padding:"3px 10px",borderRadius:6,background:"rgba(0,0,0,0.3)",color:"white",fontSize:10,fontWeight:700}}>Ling {LING_MAP[s.ling].phoneme}</div>}
+            <div style={{fontSize:12,color:"rgba(255,255,255,0.75)",marginBottom:10}}>"{s.sound}"</div>
+            <button onClick={e=>speakSound(s.sound,e)} style={{padding:"10px 22px",borderRadius:12,background:"rgba(0,0,0,0.35)",border:"1px solid rgba(255,255,255,0.25)",color:"white",fontWeight:700,fontSize:14,cursor:"pointer",fontFamily:"inherit",display:"inline-flex",alignItems:"center",gap:8,marginBottom:s.ling?8:0}}>🔊 Listen</button>
+            {s.ling&&<div style={{display:"inline-block",marginTop:4,padding:"3px 10px",borderRadius:6,background:"rgba(0,0,0,0.3)",color:"white",fontSize:10,fontWeight:700}}>Ling {LING_MAP[s.ling].phoneme}</div>}
           </div>
           {/* Actions row */}
           <div style={{display:"flex",gap:8,padding:"12px 16px"}}>
@@ -887,118 +883,6 @@ function PeekabooGame({ pool, addLog }) {
   );
 }
 
-// ═══════════════════════════════════════════════════════════════
-// OTHER GAME COMPONENTS
-// ═══════════════════════════════════════════════════════════════
-
-function DipDiceGame({ pool, addLog }) {
-  const [roll,setRoll]=useState(null);const [rolling,setRolling]=useState(false);
-  const doRoll=()=>{setRolling(true);setTimeout(()=>{setRoll({sound:pick(pool),dim:pickDip()});setRolling(false);},600);};
-  return(
-    <div style={{display:"flex",flexDirection:"column",gap:10}}>
-      <button onClick={doRoll} disabled={rolling} style={{padding:"20px",borderRadius:14,background:rolling?"rgba(255,255,255,0.06)":"linear-gradient(135deg,#6C63FF,#00D4AA)",border:"none",color:"white",fontWeight:800,fontSize:16,cursor:rolling?"wait":"pointer",fontFamily:"inherit",textAlign:"center",transition:"all 0.3s"}}>{rolling?"🎲 Rolling…":"🎲 Roll the DIP Dice!"}</button>
-      {roll&&!rolling&&(<>
-        <G style={{padding:"16px",textAlign:"center"}}>
-          <div style={{width:80,height:80,borderRadius:16,background:roll.sound.bg,display:"flex",alignItems:"center",justifyContent:"center",fontSize:48,margin:"0 auto 10px",boxShadow:"0 4px 20px rgba(0,0,0,0.3)"}}>{roll.sound.emoji}</div>
-          <div style={{fontSize:20,fontWeight:900,color:roll.sound.ling?LING_MAP[roll.sound.ling]?.color:"#B24BF3"}}>{roll.sound.word}</div>
-          <div style={{fontSize:12,color:"rgba(255,255,255,0.4)",marginBottom:10}}>{roll.sound.object} · "{roll.sound.sound}"</div>
-          <div style={{display:"inline-block",padding:"5px 14px",borderRadius:8,background:DIP_META[roll.dim].gradient,fontSize:12,fontWeight:700,marginBottom:10}}>{DIP_META[roll.dim].icon} {DIP_META[roll.dim].label}</div>
-        </G>
-        <G style={{padding:"4px 10px"}}><DipViz dim={roll.dim}/></G>
-        <G style={{padding:"12px 14px"}}><p style={{margin:0,fontSize:13,color:"rgba(255,255,255,0.6)",lineHeight:1.6}}>{L2L_DIP[roll.sound.word]?.[roll.dim]||`Practice ${roll.sound.word} with ${DIP_META[roll.dim].label} contrast`}</p></G>
-        <button onClick={()=>addLog({dim:roll.dim,sound:roll.sound.word,label:`🎲 Dice · ${roll.sound.emoji} ${roll.sound.word} · ${DIP_META[roll.dim].label}`})} style={{padding:"10px",borderRadius:8,background:"rgba(255,255,255,0.06)",border:"1px solid rgba(255,255,255,0.1)",color:"rgba(255,255,255,0.5)",fontWeight:700,fontSize:12,cursor:"pointer",fontFamily:"inherit"}}>✓ Log this practice</button>
-      </>)}
-    </div>
-  );
-}
-
-function SafariGame({ pool, focusPool, addLog }) {
-  const [list,setList]=useState(null);const [checked,setChecked]=useState({});
-  const generate=()=>{const fi=pickN(focusPool,2);const rem=pool.filter(s=>!fi.find(f=>f.word===s.word));const oth=pickN(rem,3);setList([...fi,...oth].map(s=>({...s,dim:pickDip()})));setChecked({});};
-  const done=Object.keys(checked).length;const total=list?.length||5;
-  return(
-    <div style={{display:"flex",flexDirection:"column",gap:10}}>
-      <button onClick={generate} style={{padding:"14px",borderRadius:12,background:"linear-gradient(135deg,#F59E0B,#FF6B6B)",border:"none",color:"white",fontWeight:800,fontSize:14,cursor:"pointer",fontFamily:"inherit"}}>🦁 {list?"New":"Start"} Safari!</button>
-      {list&&(<>
-        <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"0 4px"}}>
-          <span style={{fontSize:10,color:"rgba(255,255,255,0.35)"}}>{done}/{total} found</span>
-          <div style={{flex:1,marginLeft:10,height:6,background:"rgba(255,255,255,0.08)",borderRadius:3}}><div style={{height:"100%",borderRadius:3,width:`${(done/total)*100}%`,background:"linear-gradient(90deg,#F59E0B,#FF6B6B)",transition:"width 0.4s"}}/></div>
-        </div>
-        {list.map((item,i)=>{const isDone=checked[i];return(
-          <G key={i} style={{padding:"12px 14px",opacity:isDone?0.5:1,transition:"opacity 0.3s"}}>
-            <div style={{display:"flex",alignItems:"center",gap:10}}>
-              <div style={{width:44,height:44,borderRadius:12,background:item.bg,display:"flex",alignItems:"center",justifyContent:"center",fontSize:26,flexShrink:0}}>{item.emoji}</div>
-              <div style={{flex:1}}>
-                <div style={{fontWeight:800,fontSize:14,color:"white",textDecoration:isDone?"line-through":"none"}}>{item.word}</div>
-                <div style={{fontSize:10,color:"rgba(255,255,255,0.35)"}}>{item.object}</div>
-              </div>
-              <div style={{padding:"3px 8px",borderRadius:5,background:`${DIP_META[item.dim].color}22`,fontSize:9,fontWeight:700,color:DIP_META[item.dim].color}}>{DIP_META[item.dim].icon} {DIP_META[item.dim].label}</div>
-            </div>
-            <p style={{margin:"8px 0",fontSize:11,color:"rgba(255,255,255,0.45)",lineHeight:1.5}}>{L2L_DIP[item.word]?.[item.dim]||`Practice with ${DIP_META[item.dim].label}`}</p>
-            {!isDone&&<button onClick={()=>{setChecked(c=>({...c,[i]:true}));addLog({dim:item.dim,sound:item.word,label:`🦁 Safari · ${item.emoji} ${item.word} · ${DIP_META[item.dim].label}`});}} style={{width:"100%",padding:"8px",borderRadius:7,background:"rgba(255,255,255,0.06)",border:"1px solid rgba(255,255,255,0.1)",color:"rgba(255,255,255,0.5)",fontWeight:700,fontSize:11,cursor:"pointer",fontFamily:"inherit"}}>✓ Found it!</button>}
-            {isDone&&<div style={{textAlign:"center",fontSize:11,color:"#00D4AA",fontWeight:700}}>✓ Complete!</div>}
-          </G>
-        );})}
-        {done===total&&<G style={{padding:"16px",textAlign:"center",border:"1px solid rgba(0,212,170,0.3)",background:"rgba(0,212,170,0.08)"}}><span style={{fontSize:36,display:"block",marginBottom:6}}>🎉</span><div style={{fontSize:16,fontWeight:900,color:"#00D4AA"}}>Safari Complete!</div></G>}
-      </>)}
-    </div>
-  );
-}
-
-function ContrastGame({ pool, addLog }) {
-  const [pair,setPair]=useState(null);
-  const generate=()=>{const two=pickN(pool,2);const d=pickDip();const extremes={D:[["LOOOOONG — stretch it out","SHORT — quick burst, one tap"],["Sustained glide","Staccato — choppy, rapid-fire"]],I:[["WHISPER — barely audible","FULL VOICE — project loud"],["Gentle breath","Surprised SHOUT — sudden burst"]],P:[["Highest squeaky voice possible","Deepest rumble"],["Rising question ↗","Falling statement ↘"]]};const ext=pick(extremes[d]);setPair({a:two[0],b:two[1],dim:d,extA:ext[0],extB:ext[1]});};
-  return(
-    <div style={{display:"flex",flexDirection:"column",gap:10}}>
-      <button onClick={generate} style={{padding:"14px",borderRadius:12,background:"linear-gradient(135deg,#00D4AA,#6C63FF)",border:"none",color:"white",fontWeight:800,fontSize:14,cursor:"pointer",fontFamily:"inherit"}}>⚡ {pair?"New":"Generate"} Contrast!</button>
-      {pair&&(<>
-        <div style={{textAlign:"center"}}><div style={{display:"inline-block",padding:"4px 12px",borderRadius:6,background:DIP_META[pair.dim].gradient,fontSize:11,fontWeight:700}}>{DIP_META[pair.dim].icon} {DIP_META[pair.dim].label} Contrast</div></div>
-        <G style={{padding:"4px 10px"}}><DipViz dim={pair.dim}/></G>
-        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8}}>
-          {[{s:pair.a,ext:pair.extA},{s:pair.b,ext:pair.extB}].map(({s,ext},i)=>(
-            <G key={i} style={{padding:"14px 12px",textAlign:"center"}}>
-              <div style={{width:60,height:60,borderRadius:14,background:s.bg,display:"flex",alignItems:"center",justifyContent:"center",fontSize:34,margin:"0 auto 8px",boxShadow:"0 4px 16px rgba(0,0,0,0.3)"}}>{s.emoji}</div>
-              <div style={{fontWeight:800,fontSize:14,color:"white",marginBottom:4}}>{s.word}</div>
-              <div style={{fontSize:10,color:DIP_META[pair.dim].color,fontWeight:600,lineHeight:1.4}}>{ext}</div>
-            </G>
-          ))}
-        </div>
-        <G style={{padding:"10px 14px"}}><p style={{margin:0,fontSize:12,color:"rgba(255,255,255,0.5)",lineHeight:1.6,textAlign:"center"}}>Make these two as <strong style={{color:"white"}}>different</strong> as possible.</p></G>
-        <button onClick={()=>addLog({dim:pair.dim,sound:`${pair.a.word}+${pair.b.word}`,label:`⚡ Contrast · ${pair.a.emoji}${pair.b.emoji} · ${DIP_META[pair.dim].label}`})} style={{padding:"10px",borderRadius:8,background:"rgba(255,255,255,0.06)",border:"1px solid rgba(255,255,255,0.1)",color:"rgba(255,255,255,0.5)",fontWeight:700,fontSize:12,cursor:"pointer",fontFamily:"inherit"}}>✓ Log this contrast</button>
-      </>)}
-    </div>
-  );
-}
-
-function StoryChainGame({ pool, addLog }) {
-  const [chain,setChain]=useState(null);
-  const generate=()=>{const three=pickN(pool,3);const dims=[pickDip(),pickDip(),pickDip()];const connectors=[["One day","met","and together they"],["Once upon a time","heard","and ran to find"],["In a big house lived","who found","and they both saw"],["Wake up!","Look who's here —","Oh! And here comes"]];setChain({sounds:three,dims,connector:pick(connectors)});};
-  return(
-    <div style={{display:"flex",flexDirection:"column",gap:10}}>
-      <button onClick={generate} style={{padding:"14px",borderRadius:12,background:"linear-gradient(135deg,#B24BF3,#E040A0)",border:"none",color:"white",fontWeight:800,fontSize:14,cursor:"pointer",fontFamily:"inherit"}}>📖 {chain?"New":"Build a"} Story!</button>
-      {chain&&(<>
-        <G style={{padding:"16px",textAlign:"center"}}>
-          <div style={{fontSize:9,fontWeight:700,letterSpacing:"0.15em",textTransform:"uppercase",color:"rgba(255,255,255,0.3)",marginBottom:12}}>Your story</div>
-          {chain.sounds.map((s,i)=>(
-            <div key={i}>
-              {i>0&&<div style={{fontSize:12,color:"rgba(255,255,255,0.3)",fontStyle:"italic",margin:"8px 0"}}>{chain.connector[i]||"and then..."}</div>}
-              {i===0&&<div style={{fontSize:12,color:"rgba(255,255,255,0.3)",fontStyle:"italic",marginBottom:8}}>{chain.connector[0]}</div>}
-              <div style={{display:"inline-flex",alignItems:"center",gap:10,padding:"10px 16px",borderRadius:14,background:"rgba(255,255,255,0.06)",border:`1px solid ${DIP_META[chain.dims[i]].color}33`,marginBottom:4}}>
-                <div style={{width:50,height:50,borderRadius:12,background:s.bg,display:"flex",alignItems:"center",justifyContent:"center",fontSize:30,flexShrink:0,boxShadow:"0 3px 12px rgba(0,0,0,0.3)"}}>{s.emoji}</div>
-                <div style={{textAlign:"left"}}>
-                  <div style={{fontWeight:800,fontSize:15,color:"white"}}>{s.word}!</div>
-                  <div style={{fontSize:9,color:DIP_META[chain.dims[i]].color,fontWeight:600}}>{DIP_META[chain.dims[i]].icon} {DIP_META[chain.dims[i]].label}</div>
-                </div>
-              </div>
-            </div>
-          ))}
-        </G>
-        <G style={{padding:"12px 14px"}}><p style={{margin:0,fontSize:11,color:"rgba(255,255,255,0.5)",lineHeight:1.6}}>Tell the story with toys if you have them. Repeat 2-3 times — repetition is gold for CI listeners.</p></G>
-        <button onClick={()=>addLog({dim:"📖",sound:chain.sounds.map(s=>s.word).join("+"),label:`📖 Story · ${chain.sounds.map(s=>s.emoji).join("")}`,note:true})} style={{padding:"10px",borderRadius:8,background:"rgba(255,255,255,0.06)",border:"1px solid rgba(255,255,255,0.1)",color:"rgba(255,255,255,0.5)",fontWeight:700,fontSize:12,cursor:"pointer",fontFamily:"inherit"}}>✓ Log this story</button>
-      </>)}
-    </div>
-  );
-}
 
 // ═══════════════════════════════════════════════════════════════
 // VOCAB LISTEN GAME  — DIP-guided listening game for vocabulary
