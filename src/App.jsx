@@ -951,11 +951,15 @@ function PeekabooGame({ pool, addLog }) {
             {/* Gradient overlay + text at bottom */}
             <div style={{position:"absolute",inset:0,background:"linear-gradient(to bottom, rgba(0,0,0,0.05) 0%, rgba(0,0,0,0.7) 65%, rgba(0,0,0,0.88) 100%)",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"flex-end",padding:"20px 20px 22px"}}>
               {round.sound.ling&&<div style={{position:"absolute",top:14,right:14,padding:"4px 10px",borderRadius:8,background:"rgba(0,0,0,0.5)",color:"white",fontSize:11,fontWeight:800}}>Ling {LING_MAP[round.sound.ling].phoneme}</div>}
-              {L2L_AUDIO[round.sound.object]&&<button onClick={()=>{playSfx("pop");playAsset(L2L_AUDIO[round.sound.object]);}} style={{marginBottom:10,display:"flex",alignItems:"center",gap:6,padding:"7px 16px",borderRadius:20,background:"rgba(255,255,255,0.2)",border:"1px solid rgba(255,255,255,0.35)",color:"white",fontSize:13,fontWeight:700,cursor:"pointer",fontFamily:"inherit",backdropFilter:"blur(4px)"}}>🐾 Hear it!</button>}
               <div style={{fontSize:38,fontWeight:900,color:"white",marginBottom:2,textShadow:"0 2px 12px rgba(0,0,0,0.8)"}}>{round.sound.word}!</div>
               <div style={{fontSize:15,color:"rgba(255,255,255,0.75)",fontStyle:"italic"}}>"{round.sound.sound}"</div>
             </div>
           </div>
+
+          {/* Hear it button — below the photo, plays the L2L sound via TTS */}
+          <button onClick={e=>speakSound(round.sound.sound,e)} style={{width:"100%",padding:"16px",borderRadius:16,background:"linear-gradient(135deg,#6C63FF,#B24BF3)",border:"none",color:"white",fontWeight:800,fontSize:18,cursor:"pointer",fontFamily:"inherit",display:"flex",alignItems:"center",justifyContent:"center",gap:10,boxShadow:"0 4px 20px rgba(108,99,255,0.4)"}}>
+            🔊 Hear it: <em style={{fontStyle:"normal",opacity:0.85}}>"{round.sound.sound}"</em>
+          </button>
 
           {/* Auditory sandwich reminder */}
           <div style={{padding:"14px 18px",borderRadius:14,background:"rgba(0,212,170,0.08)",border:"1px solid rgba(0,212,170,0.25)",textAlign:"center"}}>
