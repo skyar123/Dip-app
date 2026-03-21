@@ -901,14 +901,18 @@ function PeekabooGame({ pool, addLog }) {
           </div>
 
           {/* Hidden animal card */}
-          <div style={{borderRadius:24,background:"rgba(255,255,255,0.06)",border:`2px solid ${m.color}44`,padding:"32px 20px",textAlign:"center",position:"relative",overflow:"hidden"}}>
-            {/* blurred emoji */}
-            <div style={{fontSize:130,lineHeight:1,filter:"blur(14px)",userSelect:"none",marginBottom:16,opacity:0.7}}>{round.sound.emoji}</div>
-            {/* Adult hint — visible word/sound */}
-            <div style={{fontSize:9,fontWeight:700,letterSpacing:"0.18em",textTransform:"uppercase",color:"rgba(255,255,255,0.35)",marginBottom:6}}>You say</div>
-            <div style={{fontSize:26,fontWeight:900,color:"white",marginBottom:4,textShadow:`0 2px 12px ${m.color}99`}}>{round.sound.word}</div>
-            {round.sound.sound!==round.sound.word&&<div style={{fontSize:14,color:"rgba(255,255,255,0.65)",fontStyle:"italic",marginBottom:4}}>"{round.sound.sound}"</div>}
-            <div style={{fontSize:12,color:"rgba(255,255,255,0.35)",fontStyle:"italic",marginTop:6}}>It's hidden… make the sound!</div>
+          <div style={{borderRadius:24,background:"rgba(255,255,255,0.06)",border:`2px solid ${m.color}44`,textAlign:"center",position:"relative",overflow:"hidden"}}>
+            {/* blurred photo / emoji */}
+            <div style={{filter:"blur(18px)",transform:"scale(1.08)",transformOrigin:"center",userSelect:"none",pointerEvents:"none"}}>
+              <AssetImage src={L2L_IMAGES[round.sound.object]} fallbackEmoji={round.sound.emoji} size="100%" style={{width:"100%",height:200,borderRadius:0,objectFit:"cover",display:"block",fontSize:130,lineHeight:"200px",textAlign:"center"}} />
+            </div>
+            {/* Adult hint overlay */}
+            <div style={{position:"absolute",inset:0,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",background:"rgba(0,0,0,0.35)",padding:"16px 20px"}}>
+              <div style={{fontSize:9,fontWeight:700,letterSpacing:"0.18em",textTransform:"uppercase",color:"rgba(255,255,255,0.5)",marginBottom:6}}>You say</div>
+              <div style={{fontSize:28,fontWeight:900,color:"white",marginBottom:4,textShadow:`0 2px 16px ${m.color}`}}>{round.sound.word}</div>
+              {round.sound.sound!==round.sound.word&&<div style={{fontSize:14,color:"rgba(255,255,255,0.75)",fontStyle:"italic",marginBottom:4}}>"{round.sound.sound}"</div>}
+              <div style={{fontSize:11,color:"rgba(255,255,255,0.4)",fontStyle:"italic",marginTop:6}}>It's hidden… make the sound!</div>
+            </div>
           </div>
 
           {/* Instruction card */}
@@ -940,15 +944,17 @@ function PeekabooGame({ pool, addLog }) {
       {/* ── REVEAL ── */}
       {phase==="reveal"&&round&&(
         <>
-          {/* Big animal card */}
-          <div style={{borderRadius:24,background:round.sound.bg,padding:"32px 20px",textAlign:"center",boxShadow:`0 8px 40px rgba(0,0,0,0.4)`,position:"relative"}}>
-            {round.sound.ling&&<div style={{position:"absolute",top:14,right:14,padding:"4px 10px",borderRadius:8,background:"rgba(0,0,0,0.35)",color:"white",fontSize:11,fontWeight:800}}>Ling {LING_MAP[round.sound.ling].phoneme}</div>}
-            <div style={{display:"flex",justifyContent:"center",marginBottom:12,animation:"popIn 0.5s ease-out"}}>
-              <AssetImage src={L2L_IMAGES[round.sound.object]} fallbackEmoji={round.sound.emoji} size={130} style={{borderRadius:20,border:"3px solid rgba(255,255,255,0.2)",filter:"drop-shadow(0 6px 20px rgba(0,0,0,0.5))"}} />
+          {/* Big animal card — full-width hero */}
+          <div style={{borderRadius:24,overflow:"hidden",boxShadow:`0 8px 40px rgba(0,0,0,0.5)`,position:"relative",animation:"popIn 0.5s ease-out"}}>
+            {/* Hero image fills the card */}
+            <AssetImage src={L2L_IMAGES[round.sound.object]} fallbackEmoji={round.sound.emoji} size="100%" style={{width:"100%",height:260,borderRadius:0,objectFit:"cover",display:"block",fontSize:160,lineHeight:"260px",textAlign:"center",background:round.sound.bg}} />
+            {/* Gradient overlay + text at bottom */}
+            <div style={{position:"absolute",inset:0,background:"linear-gradient(to bottom, rgba(0,0,0,0.05) 0%, rgba(0,0,0,0.7) 65%, rgba(0,0,0,0.88) 100%)",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"flex-end",padding:"20px 20px 22px"}}>
+              {round.sound.ling&&<div style={{position:"absolute",top:14,right:14,padding:"4px 10px",borderRadius:8,background:"rgba(0,0,0,0.5)",color:"white",fontSize:11,fontWeight:800}}>Ling {LING_MAP[round.sound.ling].phoneme}</div>}
+              {L2L_AUDIO[round.sound.object]&&<button onClick={()=>{playSfx("pop");playAsset(L2L_AUDIO[round.sound.object]);}} style={{marginBottom:10,display:"flex",alignItems:"center",gap:6,padding:"7px 16px",borderRadius:20,background:"rgba(255,255,255,0.2)",border:"1px solid rgba(255,255,255,0.35)",color:"white",fontSize:13,fontWeight:700,cursor:"pointer",fontFamily:"inherit",backdropFilter:"blur(4px)"}}>🐾 Hear it!</button>}
+              <div style={{fontSize:38,fontWeight:900,color:"white",marginBottom:2,textShadow:"0 2px 12px rgba(0,0,0,0.8)"}}>{round.sound.word}!</div>
+              <div style={{fontSize:15,color:"rgba(255,255,255,0.75)",fontStyle:"italic"}}>"{round.sound.sound}"</div>
             </div>
-            {L2L_AUDIO[round.sound.object]&&<button onClick={()=>{playSfx("pop");playAsset(L2L_AUDIO[round.sound.object]);}} style={{margin:"0 auto 10px",display:"flex",alignItems:"center",gap:6,padding:"6px 14px",borderRadius:8,background:"rgba(0,0,0,0.35)",border:"1px solid rgba(255,255,255,0.25)",color:"white",fontSize:12,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>🐾 Hear it!</button>}
-            <div style={{fontSize:32,fontWeight:900,color:"white",marginBottom:4,textShadow:"0 2px 8px rgba(0,0,0,0.5)"}}>{round.sound.word}!</div>
-            <div style={{fontSize:15,color:"rgba(255,255,255,0.8)",fontStyle:"italic"}}>"{round.sound.sound}"</div>
           </div>
 
           {/* Auditory sandwich reminder */}
