@@ -1,5 +1,51 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 
+// ─── Asset Maps ──────────────────────────────────────────────────
+const ANIMAL_IMAGES = {
+  bear:"/assets/images/animals/bear.jpg", cat:"/assets/images/animals/cat.jpg",
+  cow:"/assets/images/animals/cow.jpg", deer:"/assets/images/animals/deer.jpg",
+  dog:"/assets/images/animals/dog.jpg", elephant:"/assets/images/animals/elephant.jpg",
+  hen:"/assets/images/animals/hen.jpg", horse:"/assets/images/animals/horse.jpg",
+  lion:"/assets/images/animals/lion.jpg", monkey:"/assets/images/animals/monkey.jpg",
+  penguin:"/assets/images/animals/penguin.jpg", pig:"/assets/images/animals/pig.jpg",
+  rabbit:"/assets/images/animals/rabbit.jpg", sheep:"/assets/images/animals/sheep.jpg",
+  tiger:"/assets/images/animals/tiger.jpg", zebra:"/assets/images/animals/zebra.jpg",
+  bird:"/assets/images/animals/bird.jpg",
+};
+const ANIMAL_AUDIO = {
+  bear:"/assets/audio/animals/bear.wav", cat:"/assets/audio/animals/cat.wav",
+  cow:"/assets/audio/animals/cow.wav", dog:"/assets/audio/animals/dog.wav",
+  elephant:"/assets/audio/animals/elephant.wav", hen:"/assets/audio/animals/hen.wav",
+  horse:"/assets/audio/animals/horse.wav", lion:"/assets/audio/animals/lion.wav",
+  monkey:"/assets/audio/animals/monkey.wav", pig:"/assets/audio/animals/pig.wav",
+  rabbit:"/assets/audio/animals/rabbit.wav", sheep:"/assets/audio/animals/sheep.wav",
+};
+const SFX = {
+  pop:"/assets/sounds/pop0.mp3", correct:"/assets/sounds/correct.mp3",
+  oops:"/assets/sounds/oops.mp3", coinflip:"/assets/sounds/coinflip.mp3",
+  warn:"/assets/sounds/warn.mp3",
+};
+// Map L2L object names → image / audio assets
+const L2L_IMAGES = {
+  cow:ANIMAL_IMAGES.cow, cat:ANIMAL_IMAGES.cat, dog:ANIMAL_IMAGES.dog,
+  pig:ANIMAL_IMAGES.pig, horse:ANIMAL_IMAGES.horse, sheep:ANIMAL_IMAGES.sheep,
+  bear:ANIMAL_IMAGES.bear, monkey:ANIMAL_IMAGES.monkey, chicken:ANIMAL_IMAGES.hen,
+  bird:ANIMAL_IMAGES.bird, bunny:ANIMAL_IMAGES.rabbit, rooster:ANIMAL_IMAGES.hen,
+};
+const L2L_AUDIO = {
+  cow:ANIMAL_AUDIO.cow, cat:ANIMAL_AUDIO.cat, dog:ANIMAL_AUDIO.dog,
+  pig:ANIMAL_AUDIO.pig, horse:ANIMAL_AUDIO.horse, sheep:ANIMAL_AUDIO.sheep,
+  bear:ANIMAL_AUDIO.bear, monkey:ANIMAL_AUDIO.monkey, chicken:ANIMAL_AUDIO.hen,
+  elephant:ANIMAL_AUDIO.elephant, lion:ANIMAL_AUDIO.lion,
+};
+const playAsset = (src) => { if(!src)return; try{const a=new Audio(src);a.volume=0.7;a.play().catch(()=>{});}catch(e){} };
+const playSfx   = (name) => playAsset(SFX[name]);
+const AssetImage = ({src, fallbackEmoji, size=48, style={}}) => {
+  const [err,setErr]=useState(false);
+  if(!src||err) return <span style={{fontSize:size,display:"block",...style}}>{fallbackEmoji}</span>;
+  return <img src={src} alt="" onError={()=>setErr(true)} style={{width:size,height:size,borderRadius:10,objectFit:"cover",display:"block",...style}} />;
+};
+
 // ═══════════════════════════════════════════════════════════════
 // DATA
 // ═══════════════════════════════════════════════════════════════
@@ -356,8 +402,8 @@ export default function App() {
                 {s.ling&&<div style={{position:"absolute",top:6,right:6,fontSize:8,fontWeight:800,padding:"2px 5px",borderRadius:4,background:"rgba(0,0,0,0.35)",color:"white"}}>{LING_MAP[s.ling].phoneme}</div>}
                 {/* long sound badge */}
                 {LONG_SOUNDS.has(s.word)&&<div style={{position:"absolute",top:6,left:6,fontSize:8,fontWeight:800,padding:"2px 5px",borderRadius:4,background:"rgba(108,99,255,0.55)",color:"white"}}>⏱</div>}
-                {/* big emoji */}
-                <div style={{fontSize:gridCols===3?52:72,lineHeight:1,marginBottom:6,filter:"drop-shadow(0 2px 4px rgba(0,0,0,0.4))"}}>{s.emoji}</div>
+                {/* animal image or emoji fallback */}
+                <AssetImage src={L2L_IMAGES[s.object]} fallbackEmoji={s.emoji} size={gridCols===3?52:72} style={{borderRadius:12,marginBottom:6,filter:"drop-shadow(0 2px 8px rgba(0,0,0,0.4))"}} />
                 <div style={{fontSize:gridCols===3?10:12,fontWeight:800,color:"white",textAlign:"center",lineHeight:1.2,textShadow:"0 1px 4px rgba(0,0,0,0.5)"}}>{s.word}</div>
                 <div style={{fontSize:8,color:"rgba(255,255,255,0.65)",marginTop:2,textAlign:"center",textShadow:"0 1px 3px rgba(0,0,0,0.5)"}}>{s.object}</div>
                 {/* speaker button */}
@@ -622,10 +668,13 @@ export default function App() {
           {/* Hero */}
           <div style={{position:"relative",background:s.bg,borderRadius:"20px 20px 0 0",padding:"24px 20px 20px",textAlign:"center"}}>
             <button onClick={closeOverlay} style={{position:"absolute",top:14,right:14,width:28,height:28,borderRadius:"50%",background:"rgba(0,0,0,0.35)",border:"none",color:"white",fontSize:16,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",lineHeight:1}}>×</button>
-            <div style={{fontSize:80,lineHeight:1,marginBottom:10,filter:"drop-shadow(0 4px 12px rgba(0,0,0,0.4))"}}>{s.emoji}</div>
+            <AssetImage src={L2L_IMAGES[s.object]} fallbackEmoji={s.emoji} size={80} style={{borderRadius:16,margin:"0 auto 10px",border:"2px solid rgba(255,255,255,0.12)"}} />
             <div style={{fontSize:22,fontWeight:900,color:"white",marginBottom:4}}>{s.word}</div>
             <div style={{fontSize:12,color:"rgba(255,255,255,0.75)",marginBottom:10}}>"{s.sound}"</div>
-            <button onClick={e=>speakSound(s.sound,e)} style={{padding:"10px 22px",borderRadius:12,background:"rgba(0,0,0,0.35)",border:"1px solid rgba(255,255,255,0.25)",color:"white",fontWeight:700,fontSize:14,cursor:"pointer",fontFamily:"inherit",display:"inline-flex",alignItems:"center",gap:8,marginBottom:s.ling?8:0}}>🔊 Listen</button>
+            <div style={{display:"flex",gap:8,justifyContent:"center",flexWrap:"wrap",marginBottom:s.ling?8:0}}>
+              <button onClick={e=>speakSound(s.sound,e)} style={{padding:"10px 18px",borderRadius:12,background:"rgba(0,0,0,0.35)",border:"1px solid rgba(255,255,255,0.25)",color:"white",fontWeight:700,fontSize:13,cursor:"pointer",fontFamily:"inherit",display:"inline-flex",alignItems:"center",gap:6}}>🔊 Listen</button>
+              {L2L_AUDIO[s.object]&&<button onClick={()=>playAsset(L2L_AUDIO[s.object])} style={{padding:"10px 18px",borderRadius:12,background:"rgba(0,0,0,0.35)",border:"1px solid rgba(255,255,255,0.25)",color:"white",fontWeight:700,fontSize:13,cursor:"pointer",fontFamily:"inherit",display:"inline-flex",alignItems:"center",gap:6}}>🐾 Real sound</button>}
+            </div>
             {s.ling&&<div style={{display:"inline-block",marginTop:4,padding:"3px 10px",borderRadius:6,background:"rgba(0,0,0,0.3)",color:"white",fontSize:10,fontWeight:700}}>Ling {LING_MAP[s.ling].phoneme}</div>}
           </div>
           {/* Actions row */}
@@ -894,7 +943,10 @@ function PeekabooGame({ pool, addLog }) {
           {/* Big animal card */}
           <div style={{borderRadius:24,background:round.sound.bg,padding:"32px 20px",textAlign:"center",boxShadow:`0 8px 40px rgba(0,0,0,0.4)`,position:"relative"}}>
             {round.sound.ling&&<div style={{position:"absolute",top:14,right:14,padding:"4px 10px",borderRadius:8,background:"rgba(0,0,0,0.35)",color:"white",fontSize:11,fontWeight:800}}>Ling {LING_MAP[round.sound.ling].phoneme}</div>}
-            <div style={{fontSize:130,lineHeight:1,marginBottom:12,animation:"popIn 0.5s ease-out",filter:"drop-shadow(0 6px 20px rgba(0,0,0,0.5))"}}>{round.sound.emoji}</div>
+            <div style={{display:"flex",justifyContent:"center",marginBottom:12,animation:"popIn 0.5s ease-out"}}>
+              <AssetImage src={L2L_IMAGES[round.sound.object]} fallbackEmoji={round.sound.emoji} size={130} style={{borderRadius:20,border:"3px solid rgba(255,255,255,0.2)",filter:"drop-shadow(0 6px 20px rgba(0,0,0,0.5))"}} />
+            </div>
+            {L2L_AUDIO[round.sound.object]&&<button onClick={()=>{playSfx("pop");playAsset(L2L_AUDIO[round.sound.object]);}} style={{margin:"0 auto 10px",display:"flex",alignItems:"center",gap:6,padding:"6px 14px",borderRadius:8,background:"rgba(0,0,0,0.35)",border:"1px solid rgba(255,255,255,0.25)",color:"white",fontSize:12,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>🐾 Hear it!</button>}
             <div style={{fontSize:32,fontWeight:900,color:"white",marginBottom:4,textShadow:"0 2px 8px rgba(0,0,0,0.5)"}}>{round.sound.word}!</div>
             <div style={{fontSize:15,color:"rgba(255,255,255,0.8)",fontStyle:"italic"}}>"{round.sound.sound}"</div>
           </div>
